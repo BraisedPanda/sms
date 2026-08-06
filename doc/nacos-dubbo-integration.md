@@ -13,7 +13,7 @@
 ```java
 package com.xqy.sms.common.service;
 
-import com.xqy.sms.common.entity.Student;
+import com.xqy.sms.student.api.entity.Student;
 import java.util.List;
 
 public interface StudentDubboService {

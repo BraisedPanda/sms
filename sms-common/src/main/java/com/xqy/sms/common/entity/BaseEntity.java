@@ -7,12 +7,14 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import javax.persistence.Id;
 import java.time.LocalDateTime;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class BaseEntity {
 
+    @Id
     @TableId(type = IdType.AUTO)
     private Long id;
 
@@ -27,5 +29,6 @@ public class BaseEntity {
 
     @TableField(value = "sys_update_time", fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime sysUpdateTime;
+
 
 }

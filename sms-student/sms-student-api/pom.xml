@@ -4,32 +4,43 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.xqy</groupId>
-        <artifactId>sms</artifactId>
+        <artifactId>sms-student</artifactId>
         <version>0.0.1-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
-    <artifactId>sms-common</artifactId>
-    <packaging>jar</packaging>
-    <name>sms-common</name>
-    <description>共享公共库模块</description>
+    <groupId>com.xqy</groupId>
+    <artifactId>sms-student-api</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>sms-student-api</name>
+    <description>sms-student-api</description>
     <properties>
         <java.version>21</java.version>
     </properties>
     <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-core</artifactId>
-            <version>3.5.16</version>
-        </dependency>
-        <dependency>
-            <groupId>javax.persistence</groupId>
-            <artifactId>javax.persistence-api</artifactId>
-            <version>2.2</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
 </project>
