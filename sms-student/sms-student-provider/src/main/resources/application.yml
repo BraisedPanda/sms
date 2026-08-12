@@ -1,16 +1,25 @@
 spring:
   application:
-    name: sms-student-provider
-
+    name: dubbo-provider
+  config:
+    import: optional:nacos:127.0.0.1:8848
   datasource:
-    url: jdbc:mysql://localhost:3306/sms?useSSL=false&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://localhost:3306/sms_dev?useSSL=false&serverTimezone=Asia/Shanghai
     username: root
     password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
 
-  jpa:
-    hibernate:
-      ddl-auto: none
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.MySQL8Dialect
+server:
+  port: 8866
+
+dubbo:
+  application:
+    name: student-service-provider
+  protocol:
+    name: dubbo
+    port: 20880
+  registry:
+    address: nacos://127.0.0.1:8848
+  scan:
+    base-packages: com.xqy.sms.student.provider.service # Dubbo服务接口实现类所在的包
+

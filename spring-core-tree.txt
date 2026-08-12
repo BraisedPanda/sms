@@ -1,0 +1,76 @@
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] sms                                                                [pom]
+[INFO] sms-common-core                                                    [jar]
+[INFO] sms-common-persistent                                              [jar]
+[INFO] sms-student                                                        [pom]
+[INFO] sms-student-api                                                    [jar]
+[INFO] sms-student-provider                                               [jar]
+[INFO] 
+[INFO] ----------------------------< com.xqy:sms >-----------------------------
+[INFO] Building sms 0.0.1-SNAPSHOT                                        [1/6]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- dependency:3.8.1:tree (default-cli) @ sms ---
+[INFO] 
+[INFO] ----------------------< com.xqy:sms-common-core >-----------------------
+[INFO] Building sms-common-core 0.0.1-SNAPSHOT                            [2/6]
+[INFO]   from sms-common-core\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- dependency:3.8.1:tree (default-cli) @ sms-common-core ---
+[INFO] 
+[INFO] -------------------< com.xqy:sms-common-persistent >--------------------
+[INFO] Building sms-common-persistent 0.0.1-SNAPSHOT                      [3/6]
+[INFO]   from sms-common-persistent\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- dependency:3.8.1:tree (default-cli) @ sms-common-persistent ---
+[INFO] 
+[INFO] ------------------------< com.xqy:sms-student >-------------------------
+[INFO] Building sms-student 0.0.1-SNAPSHOT                                [4/6]
+[INFO]   from sms-student\pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[WARNING] Could not transfer metadata com.xqy:sms-common-core:0.0.1-SNAPSHOT/maven-metadata.xml from/to maven-default-http-blocker (http://0.0.0.0/): Blocked mirror for repositories: [alimaven (http://maven.aliyun.com/nexus/content/repositories/central/, default, releases+snapshots)]
+[INFO] 
+[INFO] --- dependency:3.8.1:tree (default-cli) @ sms-student ---
+[INFO] 
+[INFO] ----------------------< com.xqy:sms-student-api >-----------------------
+[INFO] Building sms-student-api 0.0.1-SNAPSHOT                            [5/6]
+[INFO]   from sms-student\sms-student-api\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- dependency:3.8.1:tree (default-cli) @ sms-student-api ---
+[INFO] com.xqy:sms-student-api:jar:0.0.1-SNAPSHOT
+[INFO] \- org.springframework.boot:spring-boot-starter:jar:3.5.0:compile
+[INFO]    \- org.springframework:spring-core:jar:5.3.39:compile
+[INFO] 
+[INFO] --------------------< com.xqy:sms-student-provider >--------------------
+[INFO] Building sms-student-provider 0.0.1-SNAPSHOT                       [6/6]
+[INFO]   from sms-student\sms-student-provider\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[WARNING] Could not transfer metadata com.xqy:sms-student-api:0.0.1-SNAPSHOT/maven-metadata.xml from/to maven-default-http-blocker (http://0.0.0.0/): Blocked mirror for repositories: [alimaven (http://maven.aliyun.com/nexus/content/repositories/central/, default, releases+snapshots)]
+[WARNING] Could not transfer metadata com.xqy:sms-common-persistent:0.0.1-SNAPSHOT/maven-metadata.xml from/to maven-default-http-blocker (http://0.0.0.0/): Blocked mirror for repositories: [alimaven (http://maven.aliyun.com/nexus/content/repositories/central/, default, releases+snapshots)]
+[INFO] 
+[INFO] --- dependency:3.8.1:tree (default-cli) @ sms-student-provider ---
+[INFO] com.xqy:sms-student-provider:jar:0.0.1-SNAPSHOT
+[INFO] \- org.springframework.boot:spring-boot-starter-test:jar:3.5.0:test
+[INFO]    \- org.springframework:spring-core:jar:5.3.39:compile
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for sms 0.0.1-SNAPSHOT:
+[INFO] 
+[INFO] sms ................................................ SUCCESS [  0.787 s]
+[INFO] sms-common-core .................................... SUCCESS [  0.020 s]
+[INFO] sms-common-persistent .............................. SUCCESS [  0.028 s]
+[INFO] sms-student ........................................ SUCCESS [  0.027 s]
+[INFO] sms-student-api .................................... SUCCESS [  0.111 s]
+[INFO] sms-student-provider ............................... SUCCESS [  0.329 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  1.752 s
+[INFO] Finished at: 2026-08-12T22:07:44+08:00
+[INFO] ------------------------------------------------------------------------

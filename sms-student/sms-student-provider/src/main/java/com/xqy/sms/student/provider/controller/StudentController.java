@@ -1,7 +1,7 @@
 package com.xqy.sms.student.provider.controller;
 
 import com.xqy.sms.common.dto.ApiResponse;
-import com.xqy.sms.student.api.entity.Student;
+import com.xqy.sms.student.api.entity.StudentDTO;
 import com.xqy.sms.student.api.service.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -20,12 +20,12 @@ public class StudentController {
     }
 
     @PostMapping
-    public ApiResponse<Boolean> create(@RequestBody Student student) {
+    public ApiResponse<Boolean> create(@RequestBody StudentDTO student) {
         return ApiResponse.success(studentService.saveStudent(student));
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<Boolean> update(@PathVariable Long id, @RequestBody Student student) {
+    public ApiResponse<Boolean> update(@PathVariable Long id, @RequestBody StudentDTO student) {
         student.setId(id);
         return ApiResponse.success(studentService.updateStudent(student));
     }
@@ -36,12 +36,12 @@ public class StudentController {
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<Student> getById(@PathVariable Long id) {
+    public ApiResponse<StudentDTO> getById(@PathVariable Long id) {
         return ApiResponse.success(studentService.getStudentById(id));
     }
 
-    @GetMapping
-    public ApiResponse<List<Student>> list() {
+    @GetMapping("/getStudentList")
+    public ApiResponse<List<StudentDTO>> list() {
         return ApiResponse.success(studentService.listStudents());
     }
 }

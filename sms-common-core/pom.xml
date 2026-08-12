@@ -8,22 +8,18 @@
         <version>0.0.1-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
-    <groupId>com.xqy</groupId>
-    <artifactId>sms-student</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <packaging>pom</packaging>
-    <name>sms-student</name>
-    <description>sms-student module aggregator</description>
+    <artifactId>sms-common-core</artifactId>
+    <packaging>jar</packaging>
+    <name>sms-common-core</name>
+    <description>共享公共库核心模块</description>
     <properties>
         <java.version>21</java.version>
     </properties>
-
-    <modules>
-        <module>sms-student-api</module>
-        <module>sms-student-provider</module>
-    </modules>
-
     <dependencies>
-
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 </project>
