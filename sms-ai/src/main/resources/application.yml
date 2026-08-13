@@ -1,3 +1,14 @@
 spring:
   application:
     name: sms-ai
+  config:
+    import: optional:nacos:127.0.0.1:8848
+
+dubbo:
+  application:
+    name: sms-ai-consumer
+  registry:
+    address: nacos://127.0.0.1:8848
+
+server:
+  port: 9091

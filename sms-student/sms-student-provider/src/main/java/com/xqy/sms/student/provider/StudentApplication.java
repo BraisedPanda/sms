@@ -6,10 +6,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 @MapperScan("com.xqy.sms.student.provider.mapper")
-public class SmsStudentProviderApplication {
+public class StudentApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(SmsStudentProviderApplication.class, args);
+        SpringApplication.run(StudentApplication.class, args);
     }
 
 }

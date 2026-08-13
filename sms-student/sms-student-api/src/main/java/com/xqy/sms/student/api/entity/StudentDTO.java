@@ -2,6 +2,7 @@ package com.xqy.sms.student.api.entity;
 
 import lombok.Data;
 
+import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -9,7 +10,9 @@ import java.time.LocalDateTime;
  * 学生实体
  */
 @Data
-public class StudentDTO {
+public class StudentDTO implements Serializable {
+
+
 
     private Long id;
 
