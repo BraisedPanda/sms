@@ -5,17 +5,17 @@
     <parent>
         <groupId>com.xqy</groupId>
         <artifactId>sms-student</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>${revision}</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <groupId>com.xqy</groupId>
     <artifactId>sms-student-provider</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>${revision}</version>
     <name>sms-student-provider</name>
     <description>sms-student-provider</description>
     <properties>
         <java.version>21</java.version>
-<!--        <dubbo.version>3.3.0</dubbo.version>-->
+<!--        -->
     </properties>
 
 
@@ -55,7 +55,6 @@
         <dependency>
             <groupId>com.xqy</groupId>
             <artifactId>sms-student-api</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.xqy</groupId>
@@ -91,12 +90,12 @@
         <dependency>
             <groupId>org.apache.dubbo</groupId>
             <artifactId>dubbo-spring-boot-starter</artifactId>
-            <version>3.3.0</version>
+            <version>${dubbo.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.dubbo</groupId>
             <artifactId>dubbo-registry-nacos</artifactId>
-            <version>3.3.0</version>
+            <version>${dubbo.version}</version>
         </dependency>
 
     </dependencies>

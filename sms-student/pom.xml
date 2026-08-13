@@ -5,12 +5,12 @@
     <parent>
         <groupId>com.xqy</groupId>
         <artifactId>sms</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>${revision}</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <groupId>com.xqy</groupId>
     <artifactId>sms-student</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>${revision}</version>
     <packaging>pom</packaging>
     <name>sms-student</name>
     <description>sms-student module aggregator</description>

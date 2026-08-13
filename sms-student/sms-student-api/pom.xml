@@ -5,12 +5,12 @@
     <parent>
         <groupId>com.xqy</groupId>
         <artifactId>sms-student</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>${revision}</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <groupId>com.xqy</groupId>
     <artifactId>sms-student-api</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>${revision}</version>
     <name>sms-student-api</name>
     <description>sms-student-api</description>
     <properties>
