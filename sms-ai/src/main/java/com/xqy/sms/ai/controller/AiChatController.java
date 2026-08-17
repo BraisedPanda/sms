@@ -1,17 +1,12 @@
 package com.xqy.sms.ai.controller;
 
-import com.xqy.sms.ai.service.AiChatAssistant;
+import com.xqy.sms.ai.service.AiAssistantService;
 import com.xqy.sms.common.dto.ApiResponse;
-import com.xqy.sms.student.api.entity.StudentDTO;
+import com.xqy.sms.student.api.entity.Student;
 import com.xqy.sms.student.api.service.StudentService;
-import dev.langchain4j.model.openai.OpenAiChatModel;
-
-import dev.langchain4j.service.AiServices;
 import org.apache.dubbo.config.annotation.DubboReference;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
@@ -22,23 +17,32 @@ public class AiChatController {
     @DubboReference
     private StudentService studentService;
 
-    private final AiChatAssistant aiChatAssistant;
 
-    public AiChatController(OpenAiChatModel openAiChatModel) {
-        this.aiChatAssistant = AiServices.create(AiChatAssistant.class, openAiChatModel);
+    private final AiAssistantService aiAssistantService;
+
+    public AiChatController(AiAssistantService aiAssistantService) {
+
+        this.aiAssistantService = aiAssistantService;
     }
 
     @GetMapping("/test1")
     public ApiResponse<?> test1() {
-        List<StudentDTO> list =  studentService.listStudents();
+        List<Student> list = studentService.listStudents();
         return ApiResponse.success(list);
     }
 
 
     @GetMapping("/sample-chat")
     public ApiResponse<?> sampleChat(@RequestParam String question) {
-        String answer = aiChatAssistant.chat(question);
+        String answer = aiAssistantService.sampleChat(question);
         return ApiResponse.success(answer);
+    }
+
+
+    @PostMapping("/chat")
+    public SseEmitter chat(@RequestParam String question) {
+        return aiAssistantService.chat(question);
+
     }
 
 

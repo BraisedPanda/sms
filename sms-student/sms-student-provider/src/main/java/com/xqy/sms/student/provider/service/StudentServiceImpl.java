@@ -1,16 +1,13 @@
 package com.xqy.sms.student.provider.service;
 
-import com.xqy.sms.student.api.entity.StudentDTO;
+import com.xqy.sms.student.api.entity.Student;
 import com.xqy.sms.student.api.service.StudentService;
-import com.xqy.sms.student.provider.converter.StudentConverter;
-import com.xqy.sms.student.provider.entity.Student;
 import com.xqy.sms.student.provider.mapper.StudentMapper;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @DubboService
 @Transactional(rollbackFor = Exception.class)
@@ -20,15 +17,13 @@ public class StudentServiceImpl implements StudentService {
     private StudentMapper studentMapper;
 
     @Override
-    public boolean saveStudent(StudentDTO student) {
-        Student entity = StudentConverter.toEntity(student);
-        return studentMapper.insert(entity) > 0;
+    public boolean saveStudent(Student student) {
+        return studentMapper.insert(student) > 0;
     }
 
     @Override
-    public boolean updateStudent(StudentDTO student) {
-        Student entity = StudentConverter.toEntity(student);
-        return studentMapper.updateById(entity) > 0;
+    public boolean updateStudent(Student student) {
+        return studentMapper.updateById(student) > 0;
     }
 
     @Override
@@ -37,15 +32,12 @@ public class StudentServiceImpl implements StudentService {
     }
 
     @Override
-    public StudentDTO getStudentById(Long id) {
-        Student entity = studentMapper.selectById(id);
-        return StudentConverter.toDTO(entity);
+    public Student getStudentById(Long id) {
+        return studentMapper.selectById(id);
     }
 
     @Override
-    public List<StudentDTO> listStudents() {
-        return studentMapper.selectList(null).stream()
-                .map(StudentConverter::toDTO)
-                .collect(Collectors.toList());
+    public List<Student> listStudents() {
+        return studentMapper.selectList(null);
     }
 }

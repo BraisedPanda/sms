@@ -17,9 +17,9 @@ server:
 langchain4j:
   open-ai:
     chat-model:
-      base-url: http://langchain4j.dev/demo/openai/v1
-      api-key: demo
-      model-name: gpt-4o-mini
+      base-url: https://blankapi.com/v1
+      api-key: sk-SMwjAMd8gTKchw2tWRGS9dau3Tat6tKIMp8sownxeCL6qqRU
+      model-name: gpt-5.6-terra
     streaming-chat-model:
       api-key: demo
       model-name: gpt-4o-mini

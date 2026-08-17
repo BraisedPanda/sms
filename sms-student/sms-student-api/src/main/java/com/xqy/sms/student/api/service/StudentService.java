@@ -1,20 +1,20 @@
 package com.xqy.sms.student.api.service;
 
-import com.xqy.sms.student.api.entity.StudentDTO;
+import com.xqy.sms.student.api.entity.Student;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 @Service
 public interface StudentService {
 
-    boolean saveStudent(StudentDTO student);
+    boolean saveStudent(Student student);
 
-    boolean updateStudent(StudentDTO student);
+    boolean updateStudent(Student student);
 
     boolean deleteStudent(Long id);
 
-    StudentDTO getStudentById(Long id);
+    Student getStudentById(Long id);
 
-    List<StudentDTO> listStudents();
+    List<Student> listStudents();
 
 }
