@@ -1,6 +1,8 @@
 package com.xqy.sms.ai.controller;
 
-import com.xqy.sms.ai.service.AiAssistantService;
+import com.xqy.sms.ai.model.AiRequest;
+import com.xqy.sms.ai.model.AiTask;
+import com.xqy.sms.ai.service.plan.AiPlanService;
 import com.xqy.sms.common.dto.ApiResponse;
 import com.xqy.sms.student.api.entity.Student;
 import com.xqy.sms.student.api.service.StudentService;
@@ -18,11 +20,11 @@ public class AiChatController {
     private StudentService studentService;
 
 
-    private final AiAssistantService aiAssistantService;
+    private final AiPlanService aiPlanService;
 
-    public AiChatController(AiAssistantService aiAssistantService) {
+    public AiChatController(AiPlanService aiPlanService) {
 
-        this.aiAssistantService = aiAssistantService;
+        this.aiPlanService = aiPlanService;
     }
 
     @GetMapping("/test1")
@@ -34,14 +36,14 @@ public class AiChatController {
 
     @GetMapping("/sample-chat")
     public ApiResponse<?> sampleChat(@RequestParam String question) {
-        String answer = aiAssistantService.sampleChat(question);
+        String answer = aiPlanService.sampleChat(question);
         return ApiResponse.success(answer);
     }
 
 
     @PostMapping("/chat")
-    public SseEmitter chat(@RequestParam String question) {
-        return aiAssistantService.chat(question);
+    public SseEmitter chat(@RequestBody AiRequest aiRequest) {
+        return aiPlanService.chat(aiRequest);
 
     }
 

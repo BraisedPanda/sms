@@ -1,4 +1,4 @@
-package com.xqy.sms.ai.service.assistant;
+package com.xqy.sms.ai.service.chat.assistant;
 
 
 import dev.langchain4j.service.TokenStream;
