@@ -1,5 +1,7 @@
 package com.xqy.sms.ai.model;
 
+import com.xqy.sms.common.entity.AiToolDefinition;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +26,7 @@ public class AiToolRegister implements AiToolDefinitionProvider {
     public void register(ExecutableAiTool tool) {
         Objects.requireNonNull(tool, "tool must not be null");
         AiToolDefinition definition = tool.definition();
-        ToolKey key = key(definition.getDomain(), definition.getToolname());
+        ToolKey key = key(definition.getDomain(), definition.getToolName());
         if (tools.putIfAbsent(key, tool) != null) {
             throw new IllegalArgumentException("Tool already registered: " + key);
         }

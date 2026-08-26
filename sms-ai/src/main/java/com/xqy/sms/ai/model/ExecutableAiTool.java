@@ -1,5 +1,7 @@
 package com.xqy.sms.ai.model;
 
+import com.xqy.sms.common.entity.AiToolDefinition;
+
 import java.util.Objects;
 
 /** Couples a tool's public definition with the executor that implements it. */

@@ -10,18 +10,18 @@ public class AiTask {
     private String toolName;
     private String reason;
     private QueryCriteria query;
-    private List<String> missngArgs = new ArrayList<>();
+    private List<String> missingArgs = new ArrayList<>();
 
     public AiTask() {
     }
 
     public AiTask(String domain, String toolName, String reason, QueryCriteria query,
-                  List<String> missngArgs) {
+                  List<String> missingArgs) {
         this.domain = domain;
         this.toolName = toolName;
         this.reason = reason;
         this.query = query;
-        this.missngArgs = missngArgs;
+        this.missingArgs = missingArgs;
     }
 
     public String getDomain() {
@@ -56,20 +56,20 @@ public class AiTask {
         this.query = query;
     }
 
-    public List<String> getMissngArgs() {
-        return missngArgs;
-    }
-
-    public void setMissngArgs(List<String> missngArgs) {
-        this.missngArgs = missngArgs;
-    }
-
-    /** Correctly-spelled aliases for callers that do not use the original wire name. */
     public List<String> getMissingArgs() {
-        return missngArgs;
+        return missingArgs;
     }
 
     public void setMissingArgs(List<String> missingArgs) {
-        this.missngArgs = missingArgs;
+        this.missingArgs = missingArgs;
+    }
+
+    /** Backward-compatible aliases for callers using the original misspelling. */
+    public List<String> getMissngArgs() {
+        return missingArgs;
+    }
+
+    public void setMissngArgs(List<String> missingArgs) {
+        this.missingArgs = missingArgs;
     }
 }

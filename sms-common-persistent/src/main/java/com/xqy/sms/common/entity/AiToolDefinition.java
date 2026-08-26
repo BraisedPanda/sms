@@ -1,30 +1,26 @@
-package com.xqy.sms.ai.model;
+package com.xqy.sms.common.entity;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
+import java.io.Serializable;
 
 /** Metadata exposed to an AI model for a tool. */
-public class AiToolDefinition {
+@TableName("ai_tool_definition")
+public class AiToolDefinition extends BaseEntity implements Serializable {
 
     private String domain;
-    private String toolname;
+
+    @TableField("tool_name")
+    private String toolName;
+
     private String description;
+
+    @TableField("argument_specification")
     private String argumentSpecification;
-    private List<String> keywords = new ArrayList<>();
+
+    private String keywords;
+
     private boolean enable;
-
-    public AiToolDefinition() {
-    }
-
-    public AiToolDefinition(String domain, String toolname, String description,
-                            String argumentSpecification, List<String> keywords, boolean enable) {
-        this.domain = domain;
-        this.toolname = toolname;
-        this.description = description;
-        this.argumentSpecification = argumentSpecification;
-        this.keywords = keywords;
-        this.enable = enable;
-    }
 
     public String getDomain() {
         return domain;
@@ -34,20 +30,12 @@ public class AiToolDefinition {
         this.domain = domain;
     }
 
-    public String getToolname() {
-        return toolname;
-    }
-
-    public void setToolname(String toolname) {
-        this.toolname = toolname;
-    }
-
     public String getToolName() {
-        return toolname;
+        return toolName;
     }
 
     public void setToolName(String toolName) {
-        this.toolname = toolName;
+        this.toolName = toolName;
     }
 
     public String getDescription() {
@@ -66,11 +54,11 @@ public class AiToolDefinition {
         this.argumentSpecification = argumentSpecification;
     }
 
-    public List<String> getKeywords() {
+    public String getKeywords() {
         return keywords;
     }
 
-    public void setKeywords(List<String> keywords) {
+    public void setKeywords(String keywords) {
         this.keywords = keywords;
     }
 

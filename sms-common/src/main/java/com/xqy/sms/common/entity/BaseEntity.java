@@ -4,18 +4,11 @@ import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.IdType;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-
-import javax.persistence.Id;
 import java.time.LocalDateTime;
 
-@Data
-@EqualsAndHashCode(callSuper = false)
 public class BaseEntity {
 
-    @Id
-    @TableId(type = IdType.AUTO)
+    @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
     @TableField("sys_creator")
@@ -30,5 +23,44 @@ public class BaseEntity {
     @TableField(value = "sys_update_time", fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime sysUpdateTime;
 
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getSysCreator() {
+        return sysCreator;
+    }
+
+    public void setSysCreator(String sysCreator) {
+        this.sysCreator = sysCreator;
+    }
+
+    public String getSysModifier() {
+        return sysModifier;
+    }
+
+    public void setSysModifier(String sysModifier) {
+        this.sysModifier = sysModifier;
+    }
+
+    public LocalDateTime getSysCreateTime() {
+        return sysCreateTime;
+    }
+
+    public void setSysCreateTime(LocalDateTime sysCreateTime) {
+        this.sysCreateTime = sysCreateTime;
+    }
+
+    public LocalDateTime getSysUpdateTime() {
+        return sysUpdateTime;
+    }
+
+    public void setSysUpdateTime(LocalDateTime sysUpdateTime) {
+        this.sysUpdateTime = sysUpdateTime;
+    }
 
 }
