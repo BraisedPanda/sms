@@ -5,7 +5,7 @@ public interface AiToolExecutor {
 
     String domain();
 
-    ToolExecutionResult execute(AiTask task);
+    AiTaskResult execute(AiTask task);
 
     default String getDomain() {
         return domain();

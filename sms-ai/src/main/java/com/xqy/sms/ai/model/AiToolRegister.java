@@ -40,7 +40,7 @@ public class AiToolRegister implements AiToolDefinitionProvider {
         return Optional.ofNullable(tools.get(key(domain, toolName)));
     }
 
-    public ToolExecutionResult execute(AiTask task) {
+    public AiTaskResult execute(AiTask task) {
         Objects.requireNonNull(task, "task must not be null");
         ExecutableAiTool tool = find(task.getDomain(), task.getToolName())
                 .orElseThrow(() -> new IllegalArgumentException(

@@ -9,6 +9,7 @@ public class AiTask {
     private String domain;
     private String toolName;
     private String reason;
+    private String subQuestion;
     private QueryCriteria query;
     private List<String> missingArgs = new ArrayList<>();
 
@@ -34,6 +35,14 @@ public class AiTask {
 
     public String getToolName() {
         return toolName;
+    }
+
+    public String getSubQuestion() {
+        return subQuestion;
+    }
+
+    public void setSubQuestion(String subQuestion) {
+        this.subQuestion = subQuestion;
     }
 
     public void setToolName(String toolName) {

@@ -1,23 +1,20 @@
 package com.xqy.sms.ai.service.plan;
 
 import cn.hutool.json.JSONUtil;
-import com.xqy.sms.ai.model.AiRequest;
-import com.xqy.sms.ai.model.AiTask;
-import com.xqy.sms.ai.model.AiToolDefinitionProvider;
-import com.xqy.sms.ai.model.QueryCriteria;
-import com.xqy.sms.ai.service.chat.assistant.AiChatAssistant;
+import com.xqy.sms.ai.model.*;
+import com.xqy.sms.ai.service.chat.AiChatService;
+import com.xqy.sms.ai.service.student.StudentBusinessService;
 import com.xqy.sms.ai.service.plan.assistant.AiPlanAssistant;
 import com.xqy.sms.common.entity.AiToolDefinition;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.service.AiServices;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PreDestroy;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -30,11 +27,13 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class AiPlanService {
 
-    private final AiChatAssistant aiChatAssistant;
     private final AiPlanAssistant aiPlanAssistant;
     private final ThreadPoolExecutor planningExecutor;
+    private final ThreadPoolExecutor taskExecutor;
     private final StringRedisTemplate stringRedisTemplate;
     private final AiToolDefinitionProvider toolDefinitionProvider;
+    private final AiChatService aiChatService;
+    private final StudentBusinessService studentBusinessService;
 
     private static final int CORE_POOL_SIZE = 2;
     private static final int MAX_POOL_SIZE = 10;
@@ -42,38 +41,28 @@ public class AiPlanService {
     private static final String CHAT_PREFIX = "chat_";
     private static final String BUSINESS_PREFIX = "business_";
 
-    /** Kept for direct callers/tests that do not configure a tool registry. */
-    public AiPlanService(OpenAiChatModel openAiChatModel,
-                         StringRedisTemplate stringRedisTemplate,
-                         StreamingChatModel streamingChatModel) {
-        this(openAiChatModel, stringRedisTemplate, streamingChatModel, (AiToolDefinitionProvider) null);
-    }
 
-    /** The registry is optional so planning still supports a chat-only fallback. */
-    @Autowired
-    public AiPlanService(OpenAiChatModel openAiChatModel,
-                         StringRedisTemplate stringRedisTemplate,
-                         StreamingChatModel streamingChatModel,
-                         ObjectProvider<AiToolDefinitionProvider> providers) {
-        this(openAiChatModel, stringRedisTemplate, streamingChatModel,
-                providers == null ? null : providers.getIfAvailable());
-    }
 
     /** Constructor useful for embedding the planner with an explicit registry. */
     public AiPlanService(OpenAiChatModel openAiChatModel,
                          StringRedisTemplate stringRedisTemplate,
                          StreamingChatModel streamingChatModel,
-                         AiToolDefinitionProvider toolDefinitionProvider) {
+                         AiToolDefinitionProvider toolDefinitionProvider,
+                         AiChatService aiChatService,
+                         StudentBusinessService studentBusinessService
+                         ) {
         this.stringRedisTemplate = stringRedisTemplate;
         this.toolDefinitionProvider = toolDefinitionProvider;
-        this.aiChatAssistant = AiServices.builder(AiChatAssistant.class)
-                .chatModel(openAiChatModel)
-                .streamingChatModel(streamingChatModel)
-                .build();
+        this.aiChatService = aiChatService;
+        this.studentBusinessService = studentBusinessService;
         this.aiPlanAssistant = AiServices.builder(AiPlanAssistant.class)
                 .chatModel(openAiChatModel)
                 .build();
         this.planningExecutor = new ThreadPoolExecutor(
+                CORE_POOL_SIZE, MAX_POOL_SIZE, KEEP_ALIVE_TIME, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>());
+
+        this.taskExecutor = new ThreadPoolExecutor(
                 CORE_POOL_SIZE, MAX_POOL_SIZE, KEEP_ALIVE_TIME, TimeUnit.SECONDS,
                 new LinkedBlockingQueue<>());
     }
@@ -81,17 +70,18 @@ public class AiPlanService {
     @PreDestroy
     public void preDestroy() {
         planningExecutor.shutdown();
+        taskExecutor.shutdown();
     }
 
     public String sampleChat(String question) {
-        return aiChatAssistant.sampleChat(question);
+        return aiChatService.sampleChat(question);
     }
 
-    public SseEmitter chat(AiRequest aiRequest) {
+    public SseEmitter chat(AiTaskRequest aiTaskRequest) {
         SseEmitter emitter = createNewSseEmitter();
         sendEvent(emitter, "start", "Chat started");
         try {
-            planningExecutor.execute(() -> startChat(emitter, aiRequest));
+            planningExecutor.execute(() -> startChat(emitter, aiTaskRequest));
         } catch (Exception e) {
             sendEvent(emitter, "error", e.getMessage());
             emitter.completeWithError(e);
@@ -99,13 +89,74 @@ public class AiPlanService {
         return emitter;
     }
 
-    public void startChat(SseEmitter emitter, AiRequest aiRequest) {
-        String businessId = buildBusinessId(aiRequest);
-        // Reserved for the conversation assistant when task execution is wired in.
-        String chatMemoryId = buildMemoryId(CHAT_PREFIX, aiRequest);
-        String question = aiRequest.getQuestion();
-        String businessContext = stringRedisTemplate.opsForValue().get(businessId);
-        List<AiTask> aiTaskList = planTasks(question, businessContext);
+    public void startChat(SseEmitter emitter, AiTaskRequest aiTaskRequest) {
+        try {
+            String businessId = buildBusinessId(aiTaskRequest);
+            String chatMemoryId = buildMemoryId(CHAT_PREFIX, aiTaskRequest);
+            String question = aiTaskRequest.getQuestion();
+            String businessContext = stringRedisTemplate.opsForValue().get(businessId);
+            List<AiTask> aiTaskList = planTasks(question, businessContext);
+            if (CollectionUtils.isEmpty(aiTaskList)) {
+                sendEvent(emitter, "error", "AI 未能生成可执行任务");
+                emitter.complete();
+            } else if (isChatTask(aiTaskList)) {
+                aiChatService.streamChat(emitter, question, chatMemoryId);
+            } else {
+                executeTasks(emitter, aiTaskList, chatMemoryId, businessId, question);
+            }
+        } catch (Exception error) {
+            sendEvent(emitter, "error", error.getMessage());
+            emitter.completeWithError(error);
+        }
+    }
+
+    private void executeTasks(SseEmitter emitter, List<AiTask> aiTaskList, String chatMemoryId,
+                              String businessId, String question) {
+        try {
+            List<java.util.concurrent.Future<AiTaskResult>> futures = aiTaskList.stream()
+                    .map(task -> taskExecutor.submit(() -> executeTask(task)))
+                    .toList();
+            List<AiTaskResult> results = new ArrayList<>(futures.size());
+            for (java.util.concurrent.Future<AiTaskResult> future : futures) {
+                results.add(future.get());
+            }
+            String resultJson = JSONUtil.toJsonStr(results);
+            stringRedisTemplate.opsForValue().set(businessId, resultJson, 30, TimeUnit.MINUTES);
+            aiChatService.answer(emitter,
+                    "用户问题：\n" + question
+                            + "\n\n业务查询结果（只能依据此结果回答，不要编造）：\n" + resultJson,
+                    chatMemoryId);
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            sendEvent(emitter, "error", "AI 任务执行被中断");
+            emitter.completeWithError(interrupted);
+        } catch (Exception error) {
+            sendEvent(emitter, "error", error.getMessage());
+            emitter.completeWithError(error);
+        }
+
+    }
+
+    private AiTaskResult executeTask(AiTask task) {
+        if (task == null || (task.getMissingArgs() != null && !task.getMissingArgs().isEmpty())) {
+            throw new IllegalArgumentException("任务缺少必要参数");
+        }
+        if ("student".equalsIgnoreCase(task.getDomain())
+                && "query_student".equalsIgnoreCase(task.getToolName())) {
+            return studentBusinessService.queryStudent(task);
+        }
+        throw new IllegalArgumentException("未注册的 AI 工具: " + task.getDomain() + "/" + task.getToolName());
+    }
+
+    private boolean isChatTask(List<AiTask> aiTaskList) {
+        boolean flag = true;
+        for (AiTask aiTask : aiTaskList) {
+            if (!"chat".equals(aiTask.getDomain())) {
+                flag = false;
+                break;
+            }
+        }
+        return flag;
     }
 
     /** Plan executable tasks from the user's question and the current context. */
@@ -162,22 +213,15 @@ public class AiPlanService {
         return prompt.toString();
     }
 
-    /** Return registered definitions, with a useful student query fallback. */
+    /** Return the definitions supplied by the database-backed provider. */
     private List<AiToolDefinition> getAllToolDefinitions() {
-        if (toolDefinitionProvider != null) {
-            List<AiToolDefinition> definitions = toolDefinitionProvider.getDefinitions();
-            if (definitions != null && !definitions.isEmpty()) {
-                return definitions.stream().filter(Objects::nonNull).toList();
-            }
+        if (toolDefinitionProvider == null) {
+            return Collections.emptyList();
         }
-        AiToolDefinition studentQuery = new AiToolDefinition();
-        studentQuery.setDomain("student");
-        studentQuery.setToolName("query_student");
-        studentQuery.setDescription("按学生姓名、年级、班级、性别等条件查询学生信息");
-        studentQuery.setArgumentSpecification("QueryCriteria: name(string), grade(string), className(string), gender(string), studentNo(string), limit(int)");
-        studentQuery.setKeywords("学生,查询,年级,班级,姓名,姓氏,性别");
-        studentQuery.setEnable(true);
-        return List.of(studentQuery);
+        List<AiToolDefinition> definitions = toolDefinitionProvider.getDefinitions();
+        return definitions == null
+                ? Collections.emptyList()
+                : definitions.stream().filter(Objects::nonNull).toList();
     }
 
     private List<AiTask> parseTaskList(String result, List<AiToolDefinition> definitions) {
@@ -265,7 +309,7 @@ public class AiPlanService {
     }
 
     public SseEmitter createNewSseEmitter() {
-        return new SseEmitter(120L);
+        return new SseEmitter(120_000L);
     }
 
     public void sendEvent(SseEmitter emitter, String status, Object data) {
@@ -276,11 +320,11 @@ public class AiPlanService {
         }
     }
 
-    public String buildBusinessId(AiRequest aiRequest) {
-        return buildMemoryId(BUSINESS_PREFIX, aiRequest);
+    public String buildBusinessId(AiTaskRequest aiTaskRequest) {
+        return buildMemoryId(BUSINESS_PREFIX, aiTaskRequest);
     }
 
-    public String buildMemoryId(String prefix, AiRequest aiRequest) {
-        return prefix + aiRequest.getUserId() + "_" + aiRequest.getSessionId();
+    public String buildMemoryId(String prefix, AiTaskRequest aiTaskRequest) {
+        return prefix + aiTaskRequest.getUserId() + "_" + aiTaskRequest.getSessionId();
     }
 }

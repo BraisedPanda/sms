@@ -31,7 +31,7 @@ public class ExecutableAiTool {
         return executor;
     }
 
-    public ToolExecutionResult execute(AiTask task) {
+    public AiTaskResult execute(AiTask task) {
         return executor.execute(task);
     }
 }

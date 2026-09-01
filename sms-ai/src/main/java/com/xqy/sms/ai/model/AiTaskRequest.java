@@ -1,6 +1,6 @@
 package com.xqy.sms.ai.model;
 
-public class AiRequest {
+public class AiTaskRequest {
 
     private String userId;
     private String sessionId;

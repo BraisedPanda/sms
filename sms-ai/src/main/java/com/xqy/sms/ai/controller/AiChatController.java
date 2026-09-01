@@ -1,7 +1,6 @@
 package com.xqy.sms.ai.controller;
 
-import com.xqy.sms.ai.model.AiRequest;
-import com.xqy.sms.ai.model.AiTask;
+import com.xqy.sms.ai.model.AiTaskRequest;
 import com.xqy.sms.ai.service.plan.AiPlanService;
 import com.xqy.sms.common.dto.ApiResponse;
 import com.xqy.sms.student.api.entity.Student;
@@ -42,8 +41,8 @@ public class AiChatController {
 
 
     @PostMapping("/chat")
-    public SseEmitter chat(@RequestBody AiRequest aiRequest) {
-        return aiPlanService.chat(aiRequest);
+    public SseEmitter chat(@RequestBody AiTaskRequest aiTaskRequest) {
+        return aiPlanService.chat(aiTaskRequest);
 
     }
 

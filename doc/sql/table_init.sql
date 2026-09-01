@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS ai_tool_definition (
     argument_specification TEXT DEFAULT NULL COMMENT '参数定义',
     keywords TEXT DEFAULT NULL COMMENT '关键词',
     enable TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否启用',
+    version VARCHAR(20) DEFAULT NULL COMMENT '版本号',
     sys_creator VARCHAR(64) DEFAULT NULL COMMENT '记录创建者',
     sys_modifier VARCHAR(64) DEFAULT NULL COMMENT '记录修改者',
     sys_create_time DATETIME DEFAULT NULL COMMENT '记录创建时间',

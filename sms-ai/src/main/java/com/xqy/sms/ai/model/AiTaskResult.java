@@ -4,14 +4,14 @@ import java.util.List;
 import java.util.Map;
 
 /** Result returned after an AI tool has executed. */
-public record ToolExecutionResult(
-        String toolname,
+public record AiTaskResult(
+        String toolName,
         String type,
         List<?> items,
         Map<String, Object> summary
 ) {
 
     public String toolName() {
-        return toolname;
+        return toolName;
     }
 }

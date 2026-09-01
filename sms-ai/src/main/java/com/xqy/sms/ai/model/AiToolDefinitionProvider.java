@@ -12,4 +12,7 @@ public interface AiToolDefinitionProvider {
     default List<AiToolDefinition> getDefinitions() {
         return definitions();
     }
+
+
+
 }
