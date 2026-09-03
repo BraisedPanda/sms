@@ -22,7 +22,13 @@ public class StudentBusinessService {
     private StudentService studentService;
 
     public AiTaskResult queryStudent(AiTask task) {
-        return queryStudent(task == null ? null : task.getQuery());
+        AiTaskResult result = queryStudent(task == null ? null : task.getQuery());
+        if (task != null) {
+            result.setDomain(task.getDomain());
+            result.setToolName(task.getToolName());
+            result.setQuestion(task.getSubQuestion());
+        }
+        return result;
     }
 
     /** Queries the student provider using the planner's normalized criteria. */
@@ -34,7 +40,14 @@ public class StudentBusinessService {
         summary.put("count", students.size());
         summary.put("domain", "student");
         summary.put("toolName", "query_student");
-        return new AiTaskResult("query_student", "student_list", students, summary);
+        AiTaskResult result = new AiTaskResult();
+        result.setDomain("student");
+        result.setToolName("query_student");
+        result.setSuccess(true);
+        result.setQuery(criteria);
+        result.setItems(students);
+        result.setSummary(summary);
+        return result;
     }
 
     private StudentQueryValues extractValues(QueryFilterNode node) {

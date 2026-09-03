@@ -7,7 +7,4 @@ public interface AiToolExecutor {
 
     AiTaskResult execute(AiTask task);
 
-    default String getDomain() {
-        return domain();
-    }
 }

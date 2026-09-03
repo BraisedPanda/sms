@@ -6,6 +6,7 @@ import java.util.List;
 /** A request to execute one registered AI tool. */
 public class AiTask {
 
+    private String requestId;
     private String domain;
     private String toolName;
     private String reason;
@@ -14,6 +15,14 @@ public class AiTask {
     private List<String> missingArgs = new ArrayList<>();
 
     public AiTask() {
+    }
+
+    public String getRequestId() {
+        return requestId;
+    }
+
+    public void setRequestId(String requestId) {
+        this.requestId = requestId;
     }
 
     public AiTask(String domain, String toolName, String reason, QueryCriteria query,

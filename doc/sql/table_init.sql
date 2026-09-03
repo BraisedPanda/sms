@@ -33,4 +33,63 @@ CREATE TABLE IF NOT EXISTS ai_tool_definition (
     sys_update_time DATETIME DEFAULT NULL COMMENT '记录更新时间',
     PRIMARY KEY (id),
     UNIQUE KEY uq_ai_tool_definition_domain_name (domain, tool_name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 工具定义表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- AI request invocation log
+CREATE TABLE IF NOT EXISTS ai_request_log (
+    id BIGINT NOT NULL COMMENT 'primary key',
+    request_id VARCHAR(64) NOT NULL COMMENT 'request trace id',
+    user_id VARCHAR(64) DEFAULT NULL,
+    session_id VARCHAR(128) DEFAULT NULL,
+    request_type VARCHAR(32) DEFAULT NULL,
+    question TEXT DEFAULT NULL,
+    model_name VARCHAR(128) DEFAULT NULL,
+    start_time DATETIME(3) NOT NULL,
+    finish_time DATETIME(3) DEFAULT NULL,
+    duration_time BIGINT DEFAULT NULL COMMENT 'duration in milliseconds',
+    input_token_count INT DEFAULT NULL,
+    output_token_count INT DEFAULT NULL,
+    total_token_count INT DEFAULT NULL,
+    success TINYINT(1) NOT NULL DEFAULT 0,
+    error_code VARCHAR(64) DEFAULT NULL,
+    error_message TEXT DEFAULT NULL,
+    sys_creator VARCHAR(64) DEFAULT NULL,
+    sys_modifier VARCHAR(64) DEFAULT NULL,
+    sys_create_time DATETIME DEFAULT NULL,
+    sys_update_time DATETIME DEFAULT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_ai_request_log_request_id (request_id),
+    KEY idx_ai_request_log_session (session_id),
+    KEY idx_ai_request_log_start_time (start_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI request invocation log';
+
+-- AI tool execution log
+CREATE TABLE IF NOT EXISTS ai_tool_execute_log (
+    id BIGINT NOT NULL COMMENT 'primary key',
+    tool_execute_id VARCHAR(64) NOT NULL COMMENT 'tool execution trace id',
+    request_id VARCHAR(64) DEFAULT NULL,
+    domain VARCHAR(128) NOT NULL,
+    tool_name VARCHAR(128) NOT NULL,
+    question TEXT DEFAULT NULL,
+    model_name VARCHAR(128) DEFAULT NULL,
+    start_time DATETIME(3) NOT NULL,
+    finish_time DATETIME(3) DEFAULT NULL,
+    duration_time BIGINT DEFAULT NULL COMMENT 'duration in milliseconds',
+    input_token_count INT DEFAULT NULL,
+    output_token_count INT DEFAULT NULL,
+    total_token_count INT DEFAULT NULL,
+    result_count INT DEFAULT NULL,
+    success TINYINT(1) NOT NULL DEFAULT 0,
+    error_code VARCHAR(64) DEFAULT NULL,
+    error_message TEXT DEFAULT NULL,
+    sys_creator VARCHAR(64) DEFAULT NULL,
+    sys_modifier VARCHAR(64) DEFAULT NULL,
+    sys_create_time DATETIME DEFAULT NULL,
+    sys_update_time DATETIME DEFAULT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_ai_tool_execute_log_execute_id (tool_execute_id),
+    KEY idx_ai_tool_execute_log_request_id (request_id),
+    KEY idx_ai_tool_execute_log_start_time (start_time),
+    KEY idx_ai_tool_execute_log_tool (domain, tool_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI tool execution log'; /*
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 工具定义表'; */
