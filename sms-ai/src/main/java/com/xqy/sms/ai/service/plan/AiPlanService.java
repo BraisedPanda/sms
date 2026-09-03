@@ -123,8 +123,7 @@ public class AiPlanService {
                 sendEvent(emitter, "error", "AI 未能生成可执行任务");
                 emitter.complete();
             } else if (isChatTask(aiTaskList)) {
-                requestLogService.success(requestId, modelName, null, null, null);
-                aiChatService.streamChat(emitter, question, chatMemoryId);
+                aiChatService.streamChat(emitter, question, chatMemoryId, requestId);
             } else {
                 aiTaskList.forEach(task -> task.setRequestId(requestId));
                 executeTasks(emitter, aiTaskList, chatMemoryId, businessId, question, requestId);
@@ -151,8 +150,7 @@ public class AiPlanService {
             aiChatService.answer(emitter,
                     "用户问题：\n" + question
                             + "\n\n业务查询结果（只能依据此结果回答，不要编造）：\n" + resultJson,
-                    chatMemoryId);
-            requestLogService.success(requestId, modelName, null, null, null);
+                    chatMemoryId, requestId);
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
             requestLogService.fail(requestId, interrupted.getClass().getSimpleName(), interrupted);

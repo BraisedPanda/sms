@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS ai_tool_definition (
     sys_update_time DATETIME DEFAULT NULL COMMENT '记录更新时间',
     PRIMARY KEY (id),
     UNIQUE KEY uq_ai_tool_definition_domain_name (domain, tool_name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 工具定义表';
 
 -- AI request invocation log
 CREATE TABLE IF NOT EXISTS ai_request_log (
@@ -91,5 +91,4 @@ CREATE TABLE IF NOT EXISTS ai_tool_execute_log (
     KEY idx_ai_tool_execute_log_request_id (request_id),
     KEY idx_ai_tool_execute_log_start_time (start_time),
     KEY idx_ai_tool_execute_log_tool (domain, tool_name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI tool execution log'; /*
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 工具定义表'; */
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI tool execution log';

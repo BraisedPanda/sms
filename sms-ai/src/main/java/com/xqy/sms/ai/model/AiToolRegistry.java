@@ -29,7 +29,6 @@ public class AiToolRegistry {
      * keeps registry initialization in one place instead of a separate
      * configuration class.
      */
-    @Autowired
     public AiToolRegistry(AiToolDefinitionProvider definitionProvider,
                           List<AiToolExecutor> executors) {
         this(definitionProvider == null ? null : definitionProvider.getDefinitions(), executors);

@@ -1,6 +1,5 @@
 package com.xqy.sms.ai.model;
 
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.xqy.sms.common.entity.BaseEntity;
 
@@ -25,9 +24,6 @@ public class AiRequestLog extends BaseEntity {
     private boolean success;
     private String errorCode;
     private String errorMessage;
-
-    @TableField(exist = false)
-    private transient String traceContext;
 
     public String getRequestId() { return requestId; }
     public void setRequestId(String requestId) { this.requestId = requestId; }
@@ -59,6 +55,4 @@ public class AiRequestLog extends BaseEntity {
     public void setErrorCode(String errorCode) { this.errorCode = errorCode; }
     public String getErrorMessage() { return errorMessage; }
     public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }
-    public String getTraceContext() { return traceContext; }
-    public void setTraceContext(String traceContext) { this.traceContext = traceContext; }
 }
