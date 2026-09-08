@@ -54,8 +54,9 @@ public class AiToolRegistry {
             }
             AiToolExecutor executor = findExecutor(executors, definition.getDomain());
             if (executor == null) {
-                throw new IllegalArgumentException("No executor registered for domain='"
-                        + definition.getDomain() + "'");
+                // A database definition may be deployed before its Java executor.
+                // Keep it out of the executable registry until the executor exists.
+                continue;
             }
             register(definition, executor);
         }

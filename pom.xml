@@ -23,7 +23,7 @@
         <nacos.version>3.0.3</nacos.version>
         <mybatis-plus.version>3.5.17</mybatis-plus.version>
         <dubbo.version>3.3.0</dubbo.version>
-        <hutool-all.version>5.8.47</hutool-all.version>
+        <hutool-json.version>5.8.47</hutool-json.version>
     </properties>
 
     <modules>

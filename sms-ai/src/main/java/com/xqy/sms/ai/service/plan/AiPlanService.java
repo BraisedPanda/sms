@@ -5,10 +5,12 @@ import com.xqy.sms.ai.model.*;
 import com.xqy.sms.ai.service.chat.AiChatService;
 import com.xqy.sms.ai.service.plan.assistant.AiPlanAssistant;
 import com.xqy.sms.ai.service.log.AiRequestLogService;
+import com.xqy.sms.ai.service.prompt.AiPromptTemplateService;
 import com.xqy.sms.common.entity.AiToolDefinition;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.service.AiServices;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,6 +37,7 @@ public class AiPlanService {
     private final AiChatService aiChatService;
     private final AiToolRegistry toolRegistry;
     private final AiRequestLogService requestLogService;
+    private final AiPromptTemplateService promptTemplateService;
 
     @Value("${langchain4j.open-ai.chat-model.model-name:unknown}")
     private String modelName;
@@ -44,6 +47,7 @@ public class AiPlanService {
     private static final long KEEP_ALIVE_TIME = 60L;
     private static final String CHAT_PREFIX = "chat_";
     private static final String BUSINESS_PREFIX = "business_";
+    private static final String PLAN_PROMPT_CODE = "AI_PLAN";
 
 
 
@@ -55,10 +59,24 @@ public class AiPlanService {
                          AiChatService aiChatService,
                          AiRequestLogService requestLogService
                          ) {
+        this(openAiChatModel, stringRedisTemplate, streamingChatModel, toolRegistry,
+                aiChatService, requestLogService, null);
+    }
+
+    /** Spring constructor with the database-backed prompt template service. */
+    @Autowired
+    public AiPlanService(OpenAiChatModel openAiChatModel,
+                         StringRedisTemplate stringRedisTemplate,
+                         StreamingChatModel streamingChatModel,
+                         AiToolRegistry toolRegistry,
+                         AiChatService aiChatService,
+                         AiRequestLogService requestLogService,
+                         AiPromptTemplateService promptTemplateService) {
         this.stringRedisTemplate = stringRedisTemplate;
         this.aiChatService = aiChatService;
         this.toolRegistry = Objects.requireNonNull(toolRegistry, "toolRegistry must not be null");
         this.requestLogService = Objects.requireNonNull(requestLogService, "requestLogService must not be null");
+        this.promptTemplateService = promptTemplateService;
         this.aiPlanAssistant = AiServices.builder(AiPlanAssistant.class)
                 .chatModel(openAiChatModel)
                 .build();
@@ -201,18 +219,16 @@ public class AiPlanService {
     public String buildPlanPrompt(String question, String businessContext,
                                   List<AiToolDefinition> definitions) {
         StringBuilder prompt = new StringBuilder();
-        prompt.append("你是一个 AI 规划助手，负责把用户问题拆分成一个或多个可执行任务。\n")
-                .append("只能输出 JSON 数组，不能输出 Markdown、代码块、解释或额外文字。\n")
-                .append("每个任务必须符合：{\"domain\":\"chat 或工具定义中的 domain\",\"toolName\":\"工具名或 null\",\n")
-                .append("\"reason\":\"执行理由\",\"query\":{\"limit\":100,\"filter\":{}},\"missingArgs\":[]}。\n")
-                .append("domain=chat 时 toolName 必须为 null，query 可为 null；domain 不是 chat 时必须从工具定义中选择 toolName。\n")
-                .append("QueryCriteria 用于转换为 MyBatis-Plus QueryWrapper：\n")
-                .append("filter 叶子节点使用 field、operator、value；逻辑节点使用 and、or、not。\n")
-                .append("operator 只能使用 EQ、NE、LIKE、NOT_LIKE、GT、GE、LT、LE、IN、NOT_IN、BETWEEN、IS_NULL、IS_NOT_NULL；IN/NOT_IN/BETWEEN 使用 values。\n")
-                .append("提取问题中的所有明确条件（例如年级、班级、姓氏、性别、时间和数量），相互独立的条件放入同一个 and 数组；不确定的参数放入 missingArgs。\n")
-                .append("field 必须使用工具参数说明中的实体属性或数据库字段名；未指定数量时 limit=100，没有条件时 filter=null。\n\n")
-                .append("解析示例：‘查询一年级1班所有姓王的女生信息’应生成 student/query_student，"
-                        + "并在 query.filter.and 中放入 grade EQ ‘一年级’、className EQ ‘1班’、name LIKE ‘王’、gender EQ ‘女’ 四个条件。\n\n")
+        String template = promptTemplateService == null
+                ? null
+                : promptTemplateService.findEnabledContent(PLAN_PROMPT_CODE);
+        if (template != null && !template.isBlank()) {
+            prompt.append(template);
+            if (!template.endsWith("\n")) {
+                prompt.append('\n');
+            }
+        }
+        prompt
                 .append("用户问题：\n---\n")
                 .append(question == null ? "(未提供)" : question)
                 .append("\n---\n业务上下文：\n---\n")

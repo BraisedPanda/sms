@@ -21,8 +21,8 @@
     <dependencies>
         <dependency>
             <groupId>cn.hutool</groupId>
-            <artifactId>hutool-all</artifactId>
-            <version>${hutool-all.version}</version>
+            <artifactId>hutool-json</artifactId>
+            <version>${hutool-json.version}</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>

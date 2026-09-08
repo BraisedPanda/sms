@@ -22,3 +22,29 @@ ON DUPLICATE KEY UPDATE
     argument_specification = VALUES(argument_specification),
     keywords = VALUES(keywords),
     enable = VALUES(enable);
+
+-- Base prompt used by the AI planner. Keep the task-specific context and tool
+-- definitions outside this template; AiPlanService appends them at runtime.
+INSERT INTO ai_prompt_template (
+    id,
+    prompt_code,
+    prompt_name,
+    prompt_content,
+    version,
+    enabled,
+    remark
+) VALUES (
+    1000000000000000002,
+    'AI_PLAN',
+    'AI planner base prompt',
+    '你是一个 AI 规划助手，负责把用户问题拆分成一个或多个可执行任务。\n只能输出 JSON 数组，不能输出 Markdown、代码块、解释或额外文字。\n每个任务必须符合：{"domain":"chat 或工具定义中的 domain","toolName":"工具名或 null",\n"reason":"执行理由","query":{"limit":100,"filter":{}},"missingArgs":[]}。\ndomain=chat 时 toolName 必须为 null，query 可为 null；domain 不是 chat 时必须从工具定义中选择 toolName。\nQueryCriteria 用于转换为 MyBatis-Plus QueryWrapper：\nfilter 叶子节点使用 field、operator、value；逻辑节点使用 and、or、not。\noperator 只能使用 EQ、NE、LIKE、NOT_LIKE、GT、GE、LT、LE、IN、NOT_IN、BETWEEN、IS_NULL、IS_NOT_NULL；IN/NOT_IN/BETWEEN 使用 values。\n提取问题中的所有明确条件（例如年级、班级、姓氏、性别、时间和数量），相互独立的条件放入同一个 and 数组；不确定的参数放入 missingArgs。\nfield 必须使用工具参数说明中的实体属性或数据库字段名；未指定数量时 limit=100，没有条件时 filter=null。\n\n解析示例：‘查询一年级1班所有姓王的女生信息’应生成 student/query_student，并在 query.filter.and 中放入 grade EQ ‘一年级’、className EQ ‘1班’、name LIKE ‘王’、gender EQ ‘女’ 四个条件。\n\n',
+    '1',
+    '1',
+    'Base instructions for task planning'
+)
+ON DUPLICATE KEY UPDATE
+    prompt_name = VALUES(prompt_name),
+    prompt_content = VALUES(prompt_content),
+    version = VALUES(version),
+    enabled = VALUES(enabled),
+    remark = VALUES(remark);

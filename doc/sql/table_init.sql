@@ -35,6 +35,23 @@ CREATE TABLE IF NOT EXISTS ai_tool_definition (
     UNIQUE KEY uq_ai_tool_definition_domain_name (domain, tool_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 工具定义表';
 
+-- AI prompt template table
+CREATE TABLE IF NOT EXISTS ai_prompt_template (
+    id BIGINT NOT NULL COMMENT 'primary key',
+    prompt_code VARCHAR(128) NOT NULL COMMENT 'prompt template code',
+    prompt_name VARCHAR(128) NOT NULL COMMENT 'prompt template name',
+    prompt_content TEXT NOT NULL COMMENT 'prompt template content',
+    version VARCHAR(32) DEFAULT NULL COMMENT 'prompt template version',
+    enabled VARCHAR(16) NOT NULL DEFAULT '1' COMMENT 'whether the template is enabled',
+    remark VARCHAR(500) DEFAULT NULL COMMENT 'remark',
+    sys_creator VARCHAR(64) DEFAULT NULL COMMENT 'creator',
+    sys_modifier VARCHAR(64) DEFAULT NULL COMMENT 'modifier',
+    sys_create_time DATETIME DEFAULT NULL COMMENT 'create time',
+    sys_update_time DATETIME DEFAULT NULL COMMENT 'update time',
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_ai_prompt_template_code (prompt_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI prompt templates';
+
 -- AI request invocation log
 CREATE TABLE IF NOT EXISTS ai_request_log (
     id BIGINT NOT NULL COMMENT 'primary key',

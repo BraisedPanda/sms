@@ -23,9 +23,9 @@ langchain4j:
   open-ai:
     chat-model:
       base-url: https://blankapi.com/v1
-      api-key: sk-SMwjAMd8gTKchw2tWRGS9dau3Tat6tKIMp8sownxeCL6qqRU
+      api-key: sk-SMwjAMd8gTKchw2tWRGS9dau3Tat6tKIMp8sownxeCL6qqRU2
       model-name: gpt-5.6-terra
     streaming-chat-model:
       base-url: ${LANGCHAIN4J_OPENAI_BASE_URL:https://blankapi.com/v1}
-      api-key: demo
-      model-name: gpt-4o-mini
+      api-key: sk-SMwjAMd8gTKchw2tWRGS9dau3Tat6tKIMp8sownxeCL6qqRU2
+      model-name: gpt-5.6-terra

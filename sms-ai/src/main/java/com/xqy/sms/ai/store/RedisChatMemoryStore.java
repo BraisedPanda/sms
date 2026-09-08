@@ -15,20 +15,17 @@ import java.util.Objects;
 @Component
 public class RedisChatMemoryStore implements ChatMemoryStore {
 
-    private static final String DEFAULT_KEY_PREFIX = "chat-memory:";
+    private static final String KEY_PREFIX = "chat-memory:";
 
     private final StringRedisTemplate redisTemplate;
-    private final String keyPrefix;
 
-    @Autowired
+
+
     public RedisChatMemoryStore(StringRedisTemplate redisTemplate) {
-        this(redisTemplate, DEFAULT_KEY_PREFIX);
+       this.redisTemplate = redisTemplate;
     }
 
-    public RedisChatMemoryStore(StringRedisTemplate redisTemplate, String keyPrefix) {
-        this.redisTemplate = Objects.requireNonNull(redisTemplate, "redisTemplate must not be null");
-        this.keyPrefix = Objects.requireNonNull(keyPrefix, "keyPrefix must not be null");
-    }
+
 
     @Override
     public List<ChatMessage> getMessages(Object memoryId) {
@@ -52,6 +49,6 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
     }
 
     private String key(Object memoryId) {
-        return keyPrefix + Objects.requireNonNull(memoryId, "memoryId must not be null");
+        return KEY_PREFIX + Objects.requireNonNull(memoryId, "memoryId must not be null");
     }
 }
