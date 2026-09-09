@@ -33,6 +33,7 @@
         <div
           class="flex-1 py-7.5 px-4 overflow-y-auto border-t-d [&::-webkit-scrollbar]:!w-1"
           ref="messageContainer"
+          @scroll="handleMessageScroll"
         >
           <template v-for="message in messages" :key="message.id">
             <div
@@ -56,8 +57,10 @@
                 <div
                   class="py-2.5 px-3.5 text-sm leading-[1.4] rounded-md"
                   :class="message.isMe ? '!bg-theme/15' : '!bg-active-color'"
-                  >{{ message.content }}</div
                 >
+                  <span>{{ message.content }}</span>
+                  <span v-if="message.streaming" class="typing-cursor" aria-hidden="true">▌</span>
+                </div>
               </div>
             </div>
           </template>
@@ -77,7 +80,14 @@
               <div class="flex gap-2 py-2">
                 <ElButton :icon="Paperclip" circle plain />
                 <ElButton :icon="Picture" circle plain />
-                <ElButton type="primary" @click="sendMessage" v-ripple>发送</ElButton>
+                <ElButton
+                  type="primary"
+                  @click="sendMessage"
+                  :loading="isStreaming"
+                  :disabled="isStreaming"
+                  v-ripple
+                  >发送</ElButton
+                >
               </div>
             </template>
           </ElInput>
@@ -86,7 +96,15 @@
               <ArtSvgIcon icon="ri:image-line" class="mr-5 c-p text-g-600 text-lg" />
               <ArtSvgIcon icon="ri:emotion-happy-line" class="mr-5 c-p text-g-600 text-lg" />
             </div>
-            <ElButton type="primary" @click="sendMessage" v-ripple class="min-w-20">发送</ElButton>
+            <ElButton
+              type="primary"
+              @click="sendMessage"
+              :loading="isStreaming"
+              :disabled="isStreaming"
+              v-ripple
+              class="min-w-20"
+              >发送</ElButton
+            >
           </div>
         </div>
       </div>
@@ -95,8 +113,10 @@
 </template>
 
 <script setup lang="ts">
-  import { Picture, Paperclip, ArrowDown } from '@element-plus/icons-vue'
+  import { Picture, Paperclip } from '@element-plus/icons-vue'
+  import { ElMessage } from 'element-plus'
   import { mittBus } from '@/utils/sys'
+  import { useUserStore } from '@/store/modules/user'
   import meAvatar from '@/assets/images/avatar/avatar5.webp'
   import aiAvatar from '@/assets/images/avatar/avatar10.webp'
   import avatar2 from '@/assets/images/avatar/avatar2.webp'
@@ -135,6 +155,19 @@
   const messageId = ref(10)
   const userAvatar = ref(meAvatar)
   const messageContainer = ref<HTMLElement | null>(null)
+  const isNearBottom = ref(true)
+  const userStore = useUserStore()
+  const sessionId = ref(createSessionId())
+  const isStreaming = ref(false)
+  let streamController: AbortController | null = null
+  let scrollFrame: number | null = null
+  const SCROLL_THRESHOLD = 80
+
+  function createSessionId(): string {
+    return typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`
+  }
 
   /**
    * 联系人列表数据
@@ -270,7 +303,17 @@
   /**
    * 消息列表数据
    */
-  const messages = ref([
+  interface ChatMessage {
+    id: number
+    sender: string
+    content: string
+    time: string
+    isMe: boolean
+    avatar: string
+    streaming?: boolean
+  }
+
+  const messages = ref<ChatMessage[]>([
     {
       id: 1,
       sender: 'Art Bot',
@@ -345,13 +388,87 @@
     }
   ])
 
-  /**
-   * 发送消息
-   * 添加新消息到消息列表并滚动到底部
-   */
-  const sendMessage = () => {
+  interface ServerSentEvent {
+    event: string
+    data: string
+  }
+
+  /** Resolve both the Vite proxy URL and a production API base URL. */
+  const getChatUrl = (): string => {
+    const apiUrl = import.meta.env.VITE_API_URL
+    if (!apiUrl || apiUrl === '/') return '/api/ai/chat'
+    return `${apiUrl.replace(/\/+$/, '')}/api/ai/chat`
+  }
+
+  const parseServerSentEvent = (frame: string): ServerSentEvent | null => {
+    let event = 'message'
+    const data: string[] = []
+
+    frame.split(/\r?\n/).forEach((line) => {
+      if (!line || line.startsWith(':')) return
+      const separator = line.indexOf(':')
+      const field = separator === -1 ? line : line.slice(0, separator)
+      const value = separator === -1 ? '' : line.slice(separator + 1).replace(/^ /, '')
+      if (field === 'event') event = value
+      if (field === 'data') data.push(value)
+    })
+
+    return data.length ? { event, data: data.join('\n') } : null
+  }
+
+  /** Consume the named SSE events emitted by AiChatController. */
+  const readAiStream = async (response: Response, assistantMessage: ChatMessage) => {
+    if (!response.body) throw new Error('服务器未返回流式响应')
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    let completed = false
+
+    const processFrame = (frame: string) => {
+      const serverEvent = parseServerSentEvent(frame)
+      if (!serverEvent) return
+
+      if (serverEvent.event === 'token') {
+        assistantMessage.content += serverEvent.data
+        assistantMessage.streaming = true
+        scheduleScrollToBottom()
+      } else if (serverEvent.event === 'error') {
+        assistantMessage.streaming = false
+        throw new Error(serverEvent.data || 'AI 服务处理失败')
+      } else if (serverEvent.event === 'done') {
+        completed = true
+        assistantMessage.streaming = false
+      }
+    }
+
+    try {
+      while (true) {
+        const { value, done } = await reader.read()
+        if (value) buffer += decoder.decode(value, { stream: true })
+        if (done) {
+          // Flush a possible partial UTF-8 sequence before parsing the final frame.
+          buffer += decoder.decode()
+        }
+        const frames = buffer.split(/\r?\n\r?\n/)
+        buffer = frames.pop() || ''
+        frames.forEach(processFrame)
+        if (done) break
+      }
+
+      if (buffer.trim()) processFrame(buffer)
+      if (!completed || !assistantMessage.content.trim()) {
+        throw new Error('AI 服务未返回有效内容')
+      }
+    } finally {
+      reader.releaseLock()
+    }
+  }
+
+  /** Send a question and append each SSE token to the current AI message. */
+  const sendMessage = async () => {
     const text = messageText.value.trim()
-    if (!text) return
+    if (!text || isStreaming.value) return
 
     messages.value.push({
       id: messageId.value++,
@@ -362,19 +479,83 @@
       avatar: userAvatar.value
     })
 
+    const assistantMessage = reactive<ChatMessage>({
+      id: messageId.value++,
+      sender: 'Art Bot',
+      content: '',
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isMe: false,
+      avatar: aiAvatar,
+      streaming: true
+    }
+    messages.value.push(assistantMessage)
+
     messageText.value = ''
-    scrollToBottom()
+    isStreaming.value = true
+    streamController = new AbortController()
+    scheduleScrollToBottom()
+
+    try {
+      const response = await fetch(getChatUrl(), {
+        method: 'POST',
+        headers: {
+          Accept: 'text/event-stream',
+          'Content-Type': 'application/json',
+          ...(userStore.accessToken ? { Authorization: userStore.accessToken } : {})
+        },
+        body: JSON.stringify({
+          userId: String(userStore.info.userId ?? 'anonymous'),
+          sessionId: sessionId.value,
+          question: text
+        }),
+        signal: streamController.signal
+      })
+
+      if (!response.ok) {
+        if (response.status === 401) userStore.logOut()
+        throw new Error(
+          response.status === 401 ? '登录已失效，请重新登录' : `请求失败（${response.status}）`
+        )
+      }
+
+      await readAiStream(response, assistantMessage)
+    } catch (error) {
+      const isAborted = error instanceof DOMException && error.name === 'AbortError'
+      assistantMessage.streaming = false
+      if (!isAborted) {
+        const message = error instanceof Error ? error.message : 'AI 服务暂时不可用'
+        assistantMessage.content = assistantMessage.content
+          ? `${assistantMessage.content}\n\n抱歉，${message}`
+          : `抱歉，${message}`
+        ElMessage.error(message)
+      }
+    } finally {
+      assistantMessage.streaming = false
+      isStreaming.value = false
+      streamController = null
+      scheduleScrollToBottom()
+    }
   }
 
   /**
    * 滚动到消息列表底部
    */
-  const scrollToBottom = () => {
-    setTimeout(() => {
-      if (messageContainer.value) {
-        messageContainer.value.scrollTop = messageContainer.value.scrollHeight
-      }
-    }, 100)
+  const handleMessageScroll = () => {
+    const container = messageContainer.value
+    if (!container) return
+    isNearBottom.value =
+      container.scrollHeight - container.scrollTop - container.clientHeight <= SCROLL_THRESHOLD
+  }
+
+  const scheduleScrollToBottom = () => {
+    if (!isNearBottom.value || scrollFrame !== null) return
+
+    scrollFrame = requestAnimationFrame(() => {
+      scrollFrame = null
+      const container = messageContainer.value
+      if (!container || !isNearBottom.value) return
+      container.scrollTop = container.scrollHeight
+    })
   }
 
   /**
@@ -385,8 +566,36 @@
   }
 
   onMounted(() => {
-    scrollToBottom()
+    scheduleScrollToBottom()
     mittBus.on('openChat', openChat)
     selectedPerson.value = personList.value[0]
   })
+
+  onUnmounted(() => {
+    streamController?.abort()
+    if (scrollFrame !== null) cancelAnimationFrame(scrollFrame)
+    mittBus.off('openChat', openChat)
+  })
 </script>
+
+<style scoped>
+  .typing-cursor {
+    display: inline-block;
+    margin-left: 2px;
+    color: currentColor;
+    animation: blink 0.8s infinite;
+  }
+
+  @keyframes blink {
+    0%,
+    50% {
+      opacity: 1;
+    }
+    )
+
+    51%,
+    100% {
+      opacity: 0;
+    }
+  }
+</style>

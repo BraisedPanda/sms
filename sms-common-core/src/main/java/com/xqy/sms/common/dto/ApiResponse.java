@@ -41,8 +41,18 @@ public class ApiResponse<T> implements Serializable {
         return message;
     }
 
+    /** Alias used by the sms-ui response contract. */
+    public String getMsg() {
+        return message;
+    }
+
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    /** Alias used when a client sends the sms-ui response field name. */
+    public void setMsg(String msg) {
+        this.message = msg;
     }
 
     public T getData() {
