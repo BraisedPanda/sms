@@ -3,6 +3,7 @@ package com.xqy.sms.ai.service.chat;
 import com.xqy.sms.ai.service.chat.assistant.AiChatAssistant;
 import com.xqy.sms.ai.model.ModelHandle;
 import com.xqy.sms.ai.model.ModelRegistry;
+import com.xqy.sms.ai.model.AiConstants;
 import com.xqy.sms.ai.store.RedisChatMemoryStore;
 import com.xqy.sms.ai.service.log.AiRequestLogService;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
@@ -41,72 +42,63 @@ public class AiChatService {
             throw new IllegalArgumentException("emitter must not be null");
         }
         if (question == null || question.isBlank()) {
-            sendEvent(emitter, "error", "question must not be blank");
+            sendEvent(emitter, AiConstants.SSE_EVENT.ERROR, "question must not be blank");
             emitter.complete();
             return;
         }
         if (chatMemoryId == null || chatMemoryId.isBlank()) {
-            sendEvent(emitter, "error", "chatMemoryId must not be blank");
+            sendEvent(emitter, AiConstants.SSE_EVENT.ERROR, "chatMemoryId must not be blank");
             emitter.complete();
             return;
         }
-        question = "用户问题：" + question + "。输出的格式为markdown，且不需要额外的解释说明。";
+        question = "用户问题：" + question + "。输出的格式为markdown。";
         try {
-            sendEvent(emitter, "generating", "生成中");
+            sendEvent(emitter, AiConstants.SSE_EVENT.GENERATING, "生成中");
             createAssistant(alias).chat(chatMemoryId, question)
-                    .onPartialResponse(token -> sendEvent(emitter, "token", token))
+                    .onPartialResponse(token -> sendEvent(emitter, AiConstants.SSE_EVENT.TOKEN, token))
                     .onCompleteResponse(response -> {
                         finishRequest(requestId, response);
-                        sendEvent(emitter, "done", "完成");
+                        sendEvent(emitter, AiConstants.SSE_EVENT.DONE, "完成");
                         emitter.complete();
                     })
                     .onError(error -> {
                         requestLogService.fail(requestId, error.getClass().getSimpleName(), error);
-                        sendEvent(emitter, "error", errorMessage(error));
+                        sendEvent(emitter, AiConstants.SSE_EVENT.ERROR, errorMessage(error));
                         emitter.completeWithError(error);
                     })
                     .start();
         } catch (Exception error) {
             requestLogService.fail(requestId, error.getClass().getSimpleName(), error);
-            sendEvent(emitter, "error", errorMessage(error));
+            sendEvent(emitter, AiConstants.SSE_EVENT.ERROR, errorMessage(error));
             emitter.completeWithError(error);
         }
-    }
-
-    /** Streams a concise answer based on structured business-tool results. */
-    public void answer(SseEmitter emitter, String resultJson, String chatMemoryId) {
-        answer(emitter, resultJson, chatMemoryId, null);
-    }
-
-    public void answer(SseEmitter emitter, String resultJson, String chatMemoryId, String requestId) {
-        answer(emitter, resultJson, chatMemoryId, requestId, null);
     }
 
     public void answer(SseEmitter emitter, String resultJson, String chatMemoryId,
                        String requestId, String alias) {
         if (resultJson == null || resultJson.isBlank()) {
-            sendEvent(emitter, "error", "工具没有返回结果");
+            sendEvent(emitter, AiConstants.SSE_EVENT.ERROR, "工具没有返回结果");
             emitter.complete();
             return;
         }
         try {
-            sendEvent(emitter, "generating", "生成中");
+            sendEvent(emitter, AiConstants.SSE_EVENT.GENERATING, "生成中");
             createAssistant(alias).answer(chatMemoryId, resultJson)
-                    .onPartialResponse(token -> sendEvent(emitter, "token", token))
+                    .onPartialResponse(token -> sendEvent(emitter, AiConstants.SSE_EVENT.TOKEN, token))
                     .onCompleteResponse(response -> {
                         finishRequest(requestId, response);
-                        sendEvent(emitter, "done", "完成");
+                        sendEvent(emitter, AiConstants.SSE_EVENT.DONE, "完成");
                         emitter.complete();
                     })
                     .onError(error -> {
                         requestLogService.fail(requestId, error.getClass().getSimpleName(), error);
-                        sendEvent(emitter, "error", errorMessage(error));
+                        sendEvent(emitter, AiConstants.SSE_EVENT.ERROR, errorMessage(error));
                         emitter.completeWithError(error);
                     })
                     .start();
         } catch (Exception error) {
             requestLogService.fail(requestId, error.getClass().getSimpleName(), error);
-            sendEvent(emitter, "error", errorMessage(error));
+            sendEvent(emitter, AiConstants.SSE_EVENT.ERROR, errorMessage(error));
             emitter.completeWithError(error);
         }
     }
@@ -146,13 +138,13 @@ public class AiChatService {
                 .streamingChatModel(modelHandle.streamingChatModel())
                 .chatMemoryProvider(memoryId -> MessageWindowChatMemory.builder()
                         .id(memoryId)
-                        .maxMessages(40)
+                        .maxMessages(AiConstants.CHAT_MEMORY_MAX_MESSAGES)
                         .chatMemoryStore(chatMemoryStore)
                         .build())
                 .build();
     }
 
     private static String normalizeAlias(String alias) {
-        return alias == null || alias.isBlank() ? "balanced" : alias.trim();
+        return alias == null || alias.isBlank() ? AiConstants.MODEL_ALIAS.BALANCED : alias.trim();
     }
 }

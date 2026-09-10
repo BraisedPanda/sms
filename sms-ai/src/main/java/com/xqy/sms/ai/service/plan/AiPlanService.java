@@ -38,11 +38,6 @@ public class AiPlanService {
     private static final int CORE_POOL_SIZE = 2;
     private static final int MAX_POOL_SIZE = 10;
     private static final long KEEP_ALIVE_TIME = 60L;
-    private static final String CHAT_PREFIX = "chat_";
-    private static final String BUSINESS_PREFIX = "business_";
-    private static final String PLAN_PROMPT_CODE = "AI_PLAN";
-
-
 
     /** Constructor useful for embedding the planner with an explicit registry. */
     public AiPlanService(ModelRegistry modelRegistry,
@@ -99,7 +94,7 @@ public class AiPlanService {
 
     public SseEmitter chat(AiTaskRequest aiTaskRequest) {
         SseEmitter emitter = createNewSseEmitter();
-        sendEvent(emitter, "start", "准备中");
+        sendEvent(emitter, AiConstants.SSE_EVENT.START, "准备中");
         AiRequestLog requestLog = requestLogService.start(
                 aiTaskRequest == null ? null : aiTaskRequest.getUserId(),
                 aiTaskRequest == null ? null : aiTaskRequest.getSessionId(),
@@ -109,7 +104,7 @@ public class AiPlanService {
             planningExecutor.execute(() -> startChat(emitter, aiTaskRequest, requestLog.getRequestId()));
         } catch (Exception e) {
             requestLogService.fail(requestLog.getRequestId(), e.getClass().getSimpleName(), e);
-            sendEvent(emitter, "error", e.getMessage());
+            sendEvent(emitter, AiConstants.SSE_EVENT.ERROR, e.getMessage());
             emitter.completeWithError(e);
         }
         return emitter;
@@ -117,27 +112,27 @@ public class AiPlanService {
 
     private void startChat(SseEmitter emitter, AiTaskRequest aiTaskRequest, String requestId) {
         try {
-            sendEvent(emitter, "planning", "分析问题中");
+            sendEvent(emitter, AiConstants.SSE_EVENT.PLANNING, "分析问题中");
             String alias = normalizeAlias(aiTaskRequest.getAlias());
             String businessId = buildBusinessId(aiTaskRequest);
-            String chatMemoryId = buildMemoryId(CHAT_PREFIX, aiTaskRequest);
+            String chatMemoryId = buildMemoryId(AiConstants.CACHE_KEY.CHAT_PREFIX, aiTaskRequest);
             String question = aiTaskRequest.getQuestion();
             String businessContext = stringRedisTemplate.opsForValue().get(businessId);
             List<AiTask> aiTaskList = planTasks(question, businessContext, alias);
             if (CollectionUtils.isEmpty(aiTaskList)) {
                 requestLogService.fail(requestId, "NO_TASK", new IllegalArgumentException("No executable AI task"));
-                sendEvent(emitter, "error", "AI 未能生成可执行任务");
+                sendEvent(emitter, AiConstants.SSE_EVENT.ERROR, "AI 未能生成可执行任务");
                 emitter.complete();
             } else if (isChatTask(aiTaskList)) {
                 aiChatService.streamChat(emitter, question, chatMemoryId, requestId, alias);
             } else {
                 aiTaskList.forEach(task -> task.setRequestId(requestId));
-                sendEvent(emitter, "executing", "查询相关数据");
+                sendEvent(emitter, AiConstants.SSE_EVENT.EXECUTING, "查询相关数据");
                 executeTasks(emitter, aiTaskList, chatMemoryId, businessId, question, requestId, alias);
             }
         } catch (Exception error) {
             requestLogService.fail(requestId, error.getClass().getSimpleName(), error);
-            sendEvent(emitter, "error", error.getMessage());
+            sendEvent(emitter, AiConstants.SSE_EVENT.ERROR, error.getMessage());
             emitter.completeWithError(error);
         }
     }
@@ -153,7 +148,8 @@ public class AiPlanService {
                 results.add(future.get());
             }
             String resultJson = JSONUtil.toJsonStr(results);
-            stringRedisTemplate.opsForValue().set(businessId, resultJson, 30, TimeUnit.MINUTES);
+            stringRedisTemplate.opsForValue().set(businessId, resultJson,
+                    AiConstants.BUSINESS_RESULT_TTL_MINUTES, TimeUnit.MINUTES);
             aiChatService.answer(emitter,
                     "用户问题：\n" + question
                             + "\n\n业务查询结果（只能依据此结果回答，不要编造）：\n" + resultJson,
@@ -161,11 +157,11 @@ public class AiPlanService {
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
             requestLogService.fail(requestId, interrupted.getClass().getSimpleName(), interrupted);
-            sendEvent(emitter, "error", "AI 任务执行被中断");
+            sendEvent(emitter, AiConstants.SSE_EVENT.ERROR, "AI 任务执行被中断");
             emitter.completeWithError(interrupted);
         } catch (Exception error) {
             requestLogService.fail(requestId, error.getClass().getSimpleName(), error);
-            sendEvent(emitter, "error", error.getMessage());
+            sendEvent(emitter, AiConstants.SSE_EVENT.ERROR, error.getMessage());
             emitter.completeWithError(error);
         }
 
@@ -181,7 +177,7 @@ public class AiPlanService {
     private boolean isChatTask(List<AiTask> aiTaskList) {
         boolean flag = true;
         for (AiTask aiTask : aiTaskList) {
-            if (!"chat".equals(aiTask.getDomain())) {
+            if (!AiConstants.TASK_DOMAIN.CHAT.equals(aiTask.getDomain())) {
                 flag = false;
                 break;
             }
@@ -191,7 +187,7 @@ public class AiPlanService {
 
     /** Plan executable tasks from the user's question and the current context. */
     public List<AiTask> planTasks(String question, String businessContext) {
-        return planTasks(question, businessContext, "strong");
+        return planTasks(question, businessContext, AiConstants.MODEL_ALIAS.STRONG);
     }
 
     /** Plan tasks with the model alias selected for the current request. */
@@ -215,7 +211,7 @@ public class AiPlanService {
         StringBuilder prompt = new StringBuilder();
         String template = promptTemplateService == null
                 ? null
-                : promptTemplateService.findEnabledContent(PLAN_PROMPT_CODE);
+                : promptTemplateService.findEnabledContent(AiConstants.PROMPT_CODE.PLAN);
         if (template != null && !template.isBlank()) {
             prompt.append(template);
             if (!template.endsWith("\n")) {
@@ -285,7 +281,7 @@ public class AiPlanService {
                 if (task.getMissingArgs() == null) {
                     task.setMissingArgs(new ArrayList<>());
                 }
-                if ("chat".equals(task.getDomain())) {
+                if (AiConstants.TASK_DOMAIN.CHAT.equals(task.getDomain())) {
                     // A chat task has no executable domain tool.
                     task.setToolName(null);
                 } else if (task.getToolName() == null || task.getToolName().isBlank()) {
@@ -298,7 +294,7 @@ public class AiPlanService {
                         task.getMissingArgs().add("toolName");
                     }
                 }
-                if (!"chat".equals(task.getDomain()) && task.getQuery() == null) {
+                if (!AiConstants.TASK_DOMAIN.CHAT.equals(task.getDomain()) && task.getQuery() == null) {
                     task.setQuery(new QueryCriteria());
                 }
             }
@@ -339,7 +335,7 @@ public class AiPlanService {
     }
 
     public SseEmitter createNewSseEmitter() {
-        return new SseEmitter(120_000L);
+        return new SseEmitter(AiConstants.SSE_EMITTER_TIMEOUT_MILLIS);
     }
 
     public void sendEvent(SseEmitter emitter, String status, Object data) {
@@ -351,7 +347,7 @@ public class AiPlanService {
     }
 
     public String buildBusinessId(AiTaskRequest aiTaskRequest) {
-        return buildMemoryId(BUSINESS_PREFIX, aiTaskRequest);
+        return buildMemoryId(AiConstants.CACHE_KEY.BUSINESS_PREFIX, aiTaskRequest);
     }
 
     public String buildMemoryId(String prefix, AiTaskRequest aiTaskRequest) {
@@ -378,6 +374,6 @@ public class AiPlanService {
     }
 
     private static String normalizeAlias(String alias) {
-        return alias == null || alias.isBlank() ? "strong" : alias.trim();
+        return alias == null || alias.isBlank() ? AiConstants.MODEL_ALIAS.STRONG : alias.trim();
     }
 }

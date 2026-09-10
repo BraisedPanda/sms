@@ -177,9 +177,9 @@ public class ModelRegistry {
     private Optional<ModelAdapter> findAdapter(String provider) {
         String normalizedProvider = normalize(provider);
         ModelAdapter adapter = adaptersByProvider.get(normalizedProvider);
-        if (adapter == null && ("deepseek".equals(normalizedProvider)
-                || "open-ai".equals(normalizedProvider))) {
-            adapter = adaptersByProvider.get("openai");
+        if (adapter == null && (AiConstants.MODEL_PROVIDER.DEEPSEEK.equals(normalizedProvider)
+                || AiConstants.MODEL_PROVIDER.OPEN_AI.equals(normalizedProvider))) {
+            adapter = adaptersByProvider.get(AiConstants.MODEL_PROVIDER.OPENAI);
         }
         return Optional.ofNullable(adapter);
     }
