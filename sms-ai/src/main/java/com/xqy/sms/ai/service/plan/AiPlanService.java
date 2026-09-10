@@ -7,13 +7,9 @@ import com.xqy.sms.ai.service.plan.assistant.AiPlanAssistant;
 import com.xqy.sms.ai.service.log.AiRequestLogService;
 import com.xqy.sms.ai.service.prompt.AiPromptTemplateService;
 import com.xqy.sms.common.entity.AiToolDefinition;
-import dev.langchain4j.model.chat.StreamingChatModel;
-import dev.langchain4j.model.openai.OpenAiChatModel;
-import dev.langchain4j.service.AiServices;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -30,17 +26,14 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class AiPlanService {
 
-    private final AiPlanAssistant aiPlanAssistant;
     private final ThreadPoolExecutor planningExecutor;
     private final ThreadPoolExecutor taskExecutor;
     private final StringRedisTemplate stringRedisTemplate;
     private final AiChatService aiChatService;
+    private final ModelRegistry modelRegistry;
     private final AiToolRegistry toolRegistry;
     private final AiRequestLogService requestLogService;
     private final AiPromptTemplateService promptTemplateService;
-
-    @Value("${langchain4j.open-ai.chat-model.model-name:unknown}")
-    private String modelName;
 
     private static final int CORE_POOL_SIZE = 2;
     private static final int MAX_POOL_SIZE = 10;
@@ -52,34 +45,30 @@ public class AiPlanService {
 
 
     /** Constructor useful for embedding the planner with an explicit registry. */
-    public AiPlanService(OpenAiChatModel openAiChatModel,
+    public AiPlanService(ModelRegistry modelRegistry,
                          StringRedisTemplate stringRedisTemplate,
-                         StreamingChatModel streamingChatModel,
                          AiToolRegistry toolRegistry,
                          AiChatService aiChatService,
                          AiRequestLogService requestLogService
                          ) {
-        this(openAiChatModel, stringRedisTemplate, streamingChatModel, toolRegistry,
+        this(modelRegistry, stringRedisTemplate, toolRegistry,
                 aiChatService, requestLogService, null);
     }
 
     /** Spring constructor with the database-backed prompt template service. */
     @Autowired
-    public AiPlanService(OpenAiChatModel openAiChatModel,
+    public AiPlanService(ModelRegistry modelRegistry,
                          StringRedisTemplate stringRedisTemplate,
-                         StreamingChatModel streamingChatModel,
                          AiToolRegistry toolRegistry,
                          AiChatService aiChatService,
                          AiRequestLogService requestLogService,
                          AiPromptTemplateService promptTemplateService) {
         this.stringRedisTemplate = stringRedisTemplate;
         this.aiChatService = aiChatService;
+        this.modelRegistry = Objects.requireNonNull(modelRegistry, "modelRegistry must not be null");
         this.toolRegistry = Objects.requireNonNull(toolRegistry, "toolRegistry must not be null");
         this.requestLogService = Objects.requireNonNull(requestLogService, "requestLogService must not be null");
         this.promptTemplateService = promptTemplateService;
-        this.aiPlanAssistant = AiServices.builder(AiPlanAssistant.class)
-                .chatModel(openAiChatModel)
-                .build();
         this.planningExecutor = new ThreadPoolExecutor(
                 CORE_POOL_SIZE, MAX_POOL_SIZE, KEEP_ALIVE_TIME, TimeUnit.SECONDS,
                 new LinkedBlockingQueue<>());
@@ -96,6 +85,7 @@ public class AiPlanService {
     }
 
     public String sampleChat(String question) {
+        String modelName = modelRegistry.defaultModelName();
         AiRequestLog logRecord = requestLogService.start(null, null, question, "sample-chat", modelName);
         try {
             String answer = aiChatService.sampleChat(question);
@@ -109,12 +99,12 @@ public class AiPlanService {
 
     public SseEmitter chat(AiTaskRequest aiTaskRequest) {
         SseEmitter emitter = createNewSseEmitter();
-        sendEvent(emitter, "start", "Chat started");
+        sendEvent(emitter, "start", "准备中");
         AiRequestLog requestLog = requestLogService.start(
                 aiTaskRequest == null ? null : aiTaskRequest.getUserId(),
                 aiTaskRequest == null ? null : aiTaskRequest.getSessionId(),
                 aiTaskRequest == null ? null : aiTaskRequest.getQuestion(),
-                "chat", modelName);
+                "chat", modelNameForAlias(aiTaskRequest == null ? null : aiTaskRequest.getAlias()));
         try {
             planningExecutor.execute(() -> startChat(emitter, aiTaskRequest, requestLog.getRequestId()));
         } catch (Exception e) {
@@ -125,26 +115,25 @@ public class AiPlanService {
         return emitter;
     }
 
-    public void startChat(SseEmitter emitter, AiTaskRequest aiTaskRequest) {
-        startChat(emitter, aiTaskRequest, null);
-    }
-
     private void startChat(SseEmitter emitter, AiTaskRequest aiTaskRequest, String requestId) {
         try {
+            sendEvent(emitter, "planning", "分析问题中");
+            String alias = normalizeAlias(aiTaskRequest.getAlias());
             String businessId = buildBusinessId(aiTaskRequest);
             String chatMemoryId = buildMemoryId(CHAT_PREFIX, aiTaskRequest);
             String question = aiTaskRequest.getQuestion();
             String businessContext = stringRedisTemplate.opsForValue().get(businessId);
-            List<AiTask> aiTaskList = planTasks(question, businessContext);
+            List<AiTask> aiTaskList = planTasks(question, businessContext, alias);
             if (CollectionUtils.isEmpty(aiTaskList)) {
                 requestLogService.fail(requestId, "NO_TASK", new IllegalArgumentException("No executable AI task"));
                 sendEvent(emitter, "error", "AI 未能生成可执行任务");
                 emitter.complete();
             } else if (isChatTask(aiTaskList)) {
-                aiChatService.streamChat(emitter, question, chatMemoryId, requestId);
+                aiChatService.streamChat(emitter, question, chatMemoryId, requestId, alias);
             } else {
                 aiTaskList.forEach(task -> task.setRequestId(requestId));
-                executeTasks(emitter, aiTaskList, chatMemoryId, businessId, question, requestId);
+                sendEvent(emitter, "executing", "查询相关数据");
+                executeTasks(emitter, aiTaskList, chatMemoryId, businessId, question, requestId, alias);
             }
         } catch (Exception error) {
             requestLogService.fail(requestId, error.getClass().getSimpleName(), error);
@@ -154,7 +143,7 @@ public class AiPlanService {
     }
 
     private void executeTasks(SseEmitter emitter, List<AiTask> aiTaskList, String chatMemoryId,
-                              String businessId, String question, String requestId) {
+                              String businessId, String question, String requestId, String alias) {
         try {
             List<java.util.concurrent.Future<AiTaskResult>> futures = aiTaskList.stream()
                     .map(task -> taskExecutor.submit(() -> executeBusinessTask(task)))
@@ -168,7 +157,7 @@ public class AiPlanService {
             aiChatService.answer(emitter,
                     "用户问题：\n" + question
                             + "\n\n业务查询结果（只能依据此结果回答，不要编造）：\n" + resultJson,
-                    chatMemoryId, requestId);
+                    chatMemoryId, requestId, alias);
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
             requestLogService.fail(requestId, interrupted.getClass().getSimpleName(), interrupted);
@@ -202,12 +191,17 @@ public class AiPlanService {
 
     /** Plan executable tasks from the user's question and the current context. */
     public List<AiTask> planTasks(String question, String businessContext) {
+        return planTasks(question, businessContext, "strong");
+    }
+
+    /** Plan tasks with the model alias selected for the current request. */
+    public List<AiTask> planTasks(String question, String businessContext, String alias) {
         if (question == null || question.isBlank()) {
             return Collections.emptyList();
         }
         List<AiToolDefinition> definitions = getAllToolDefinitions();
         String prompt = buildPlanPrompt(question, businessContext, definitions);
-        return parseTaskList(aiPlanAssistant.plan(prompt), definitions);
+        return parseTaskList(createPlanAssistant(alias).plan(prompt), definitions);
     }
 
     /** Compatibility overload; planning calls should include the question. */
@@ -362,5 +356,28 @@ public class AiPlanService {
 
     public String buildMemoryId(String prefix, AiTaskRequest aiTaskRequest) {
         return prefix + aiTaskRequest.getUserId() + "_" + aiTaskRequest.getSessionId();
+    }
+
+    private AiPlanAssistant createPlanAssistant(String alias) {
+        ModelHandle modelHandle = modelRegistry.find(normalizeAlias(alias))
+                .orElseGet(modelRegistry::defaultModel);
+        return dev.langchain4j.service.AiServices.builder(AiPlanAssistant.class)
+                .chatModel(modelHandle.chatModel())
+                .build();
+    }
+
+    private String modelNameForAlias(String alias) {
+        if (alias == null || alias.isBlank()) {
+            return modelRegistry.defaultModelName();
+        }
+        try {
+            return modelRegistry.modelName(alias);
+        } catch (IllegalArgumentException exception) {
+            return modelRegistry.defaultModelName();
+        }
+    }
+
+    private static String normalizeAlias(String alias) {
+        return alias == null || alias.isBlank() ? "strong" : alias.trim();
     }
 }

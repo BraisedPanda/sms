@@ -34,6 +34,9 @@ importers:
       crypto-js:
         specifier: ^4.2.0
         version: 4.2.0
+      dompurify:
+        specifier: ^3.4.15
+        version: 3.4.15
       echarts:
         specifier: ^6.0.0
         version: 6.0.0
@@ -46,6 +49,9 @@ importers:
       highlight.js:
         specifier: ^11.10.0
         version: 11.11.1
+      marked:
+        specifier: ^18.0.12
+        version: 18.0.12
       mitt:
         specifier: ^3.0.1
         version: 3.0.1
@@ -2926,6 +2932,12 @@ packages:
         integrity: sha512-wIkAryiqt/nV5EQKqQpo3SToSOV9J0DnbJqwK7Wv/Trc92zIAYZ4FlMu+JPFW1DfGFt81ZTCGgDEabffXeLyJg==
       }
 
+  dompurify@3.4.15:
+    resolution:
+      {
+        integrity: sha512-EUBjM+B+lkDE41iE82DDSCfkoPGfXx8IxFxPMjNzm/Uk4xDet77rTN9wqlxlVg71kK7XGuUMv6wUxJUwwv+Xyw==
+      }
+
   dom7@3.0.0:
     resolution:
       {
@@ -4563,6 +4575,12 @@ packages:
     resolution:
       {
         integrity: sha512-2N21sPY9Ws53PZvsEpVtNuSW+ScYbQdp4b9qUaL+9QkHUrGFKo56Lg9Emg5s9V/qrtNBmiR01sYhUOwu3H+VOw==
+      }
+
+  marked@18.0.12:
+    resolution:
+      {
+        integrity: sha512-LEm4ga2YeI2T3GVHj9b0BaDPPk93LLTHMFeMyQbNIzPxc8vCI0y/scy0ZA6z6lXKyT9j9Nhl/OC6ZYKYGuFScA==
       }
 
   math-intrinsics@1.1.0:
@@ -8107,6 +8125,8 @@ snapshots:
       domelementtype: 2.3.0
       domhandler: 5.0.3
 
+  dompurify@3.4.15: {}
+
   dot-prop@5.3.0:
     dependencies:
       is-obj: 2.0.0
@@ -9026,6 +9046,8 @@ snapshots:
   magic-string@0.30.19:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  marked@18.0.12: {}
 
   math-intrinsics@1.1.0: {}
 

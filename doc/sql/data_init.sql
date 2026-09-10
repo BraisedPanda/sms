@@ -23,6 +23,49 @@ ON DUPLICATE KEY UPDATE
     keywords = VALUES(keywords),
     enable = VALUES(enable);
 
+-- AI 模型定义初始化数据。api_key 保存环境变量名，不直接保存密钥。
+INSERT INTO ai_model_definition (
+    id,
+    provider,
+    model_name,
+    base_url,
+    api_key,
+    alias,
+    capabilities,
+    fallback_alias,
+    enabled,
+    remark
+) VALUES (
+    1000000000000000101,
+    'openai',
+    'gpt-5.6-terra',
+    'https://blankapi.com/v1',
+    'OPENAI_API_KEY',
+    'strong',
+    'chat,stream',
+    'balanced',
+    '1',
+    'OpenAI 兼容接口的强模型，优先用于复杂问题规划和回答'
+), (
+    1000000000000000102,
+    'deepseek',
+    'deepseek-chat',
+    'https://api.deepseek.com/v1',
+    'DEEPSEEK_API_KEY',
+    'balanced',
+    'chat,stream',
+    'strong',
+    '0',
+    'DeepSeek 通用对话模型，配置密钥后可启用为默认模型'
+)
+ON DUPLICATE KEY UPDATE
+    base_url = VALUES(base_url),
+    api_key = VALUES(api_key),
+    capabilities = VALUES(capabilities),
+    fallback_alias = VALUES(fallback_alias),
+    enabled = VALUES(enabled),
+    remark = VALUES(remark);
+
 -- Base prompt used by the AI planner. Keep the task-specific context and tool
 -- definitions outside this template; AiPlanService appends them at runtime.
 INSERT INTO ai_prompt_template (

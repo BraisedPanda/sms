@@ -35,6 +35,27 @@ CREATE TABLE IF NOT EXISTS ai_tool_definition (
     UNIQUE KEY uq_ai_tool_definition_domain_name (domain, tool_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 工具定义表';
 
+-- AI 模型定义表
+CREATE TABLE IF NOT EXISTS ai_model_definition (
+    id BIGINT NOT NULL COMMENT '主键（雪花算法）',
+    provider VARCHAR(64) NOT NULL COMMENT '模型厂商，例如 openai、deepseek',
+    model_name VARCHAR(128) NOT NULL COMMENT '厂商模型名称',
+    base_url VARCHAR(500) DEFAULT NULL COMMENT '模型服务基础地址',
+    api_key VARCHAR(128) NOT NULL COMMENT 'API key 环境变量名，例如 OPENAI_API_KEY',
+    alias VARCHAR(64) NOT NULL COMMENT '模型别名，例如 balanced、strong、fast',
+    capabilities VARCHAR(255) DEFAULT NULL COMMENT '模型能力，逗号分隔，例如 chat,stream',
+    fallback_alias VARCHAR(64) DEFAULT NULL COMMENT '当前模型不可用时的回退模型别名',
+    enabled VARCHAR(16) NOT NULL DEFAULT '1' COMMENT '是否启用，支持 1、true、yes',
+    remark VARCHAR(500) DEFAULT NULL COMMENT '中文备注',
+    sys_creator VARCHAR(64) DEFAULT NULL COMMENT '记录创建者',
+    sys_modifier VARCHAR(64) DEFAULT NULL COMMENT '记录修改者',
+    sys_create_time DATETIME DEFAULT NULL COMMENT '记录创建时间',
+    sys_update_time DATETIME DEFAULT NULL COMMENT '记录更新时间',
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_ai_model_definition_alias (alias),
+    UNIQUE KEY uq_ai_model_definition_provider_name (provider, model_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 模型定义表';
+
 -- AI prompt template table
 CREATE TABLE IF NOT EXISTS ai_prompt_template (
     id BIGINT NOT NULL COMMENT 'primary key',

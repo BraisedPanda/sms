@@ -2,7 +2,9 @@ spring:
   application:
     name: sms-ai
   config:
-    import: optional:nacos:127.0.0.1:8848
+    import:
+      - optional:file:.env[.properties]
+      - optional:nacos:127.0.0.1:8848
   datasource:
     url: ${SMS_AI_DATASOURCE_URL:jdbc:mysql://localhost:3306/sms_dev?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8}
     username: ${SMS_AI_DATASOURCE_USERNAME:root}
@@ -17,15 +19,3 @@ dubbo:
 
 server:
   port: 9091
-
-
-langchain4j:
-  open-ai:
-    chat-model:
-      base-url: https://blankapi.com/v1
-      api-key: sk-SMwjAMd8gTKchw2tWRGS9dau3Tat6tKIMp8sownxeCL6qqRU
-      model-name: gpt-5.6-terra
-    streaming-chat-model:
-      base-url: ${LANGCHAIN4J_OPENAI_BASE_URL:https://blankapi.com/v1}
-      api-key: sk-SMwjAMd8gTKchw2tWRGS9dau3Tat6tKIMp8sownxeCL6qqRU
-      model-name: gpt-5.6-terra

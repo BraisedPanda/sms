@@ -5,6 +5,8 @@ public class AiTaskRequest {
     private String userId;
     private String sessionId;
     private String question;
+    /** Model alias selected for this request, for example balanced or strong. */
+    private String alias;
 
 
     public String getUserId() {
@@ -29,5 +31,13 @@ public class AiTaskRequest {
 
     public void setQuestion(String question) {
         this.question = question;
+    }
+
+    public String getAlias() {
+        return alias;
+    }
+
+    public void setAlias(String alias) {
+        this.alias = alias;
     }
 }

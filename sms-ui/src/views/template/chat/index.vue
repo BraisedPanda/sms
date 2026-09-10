@@ -1,15 +1,6 @@
 <!-- 聊天页 -->
 <template>
   <div class="page-content flex !p-0 max-md:flex-col" :style="{ height: containerMinHeight }">
-    <ElRow>
-      <ElCol :span="12">
-        <div class="grid-content ep-bg-purple" />
-      </ElCol>
-      <ElCol :span="12">
-        <div class="grid-content ep-bg-purple-light" />
-      </ElCol>
-    </ElRow>
-
     <div class="box-border flex-1 h-full max-md:h-[calc(70%-30px)]">
       <div class="flex-cb pt-4 px-4 pb-0 mb-5">
         <div>
@@ -58,8 +49,19 @@
                   class="py-2.5 px-3.5 text-sm leading-[1.4] rounded-md"
                   :class="message.isMe ? '!bg-theme/15' : '!bg-active-color'"
                 >
-                  <span>{{ message.content }}</span>
-                  <span v-if="message.streaming" class="typing-cursor" aria-hidden="true">▌</span>
+                  <div
+                    v-if="message.streaming && message.status"
+                    class="chat-status shimmer-text"
+                    aria-live="polite"
+                  >
+                    {{ getStatusLabel(message.status) }}
+                  </div>
+                  <div
+                    v-if="!message.isMe && message.content"
+                    class="markdown-content"
+                    v-html="renderMarkdown(message.content)"
+                  ></div>
+                  <span v-else-if="message.content">{{ message.content }}</span>
                 </div>
               </div>
             </div>
@@ -115,44 +117,20 @@
 <script setup lang="ts">
   import { Picture, Paperclip } from '@element-plus/icons-vue'
   import { ElMessage } from 'element-plus'
-  import { mittBus } from '@/utils/sys'
+  import DOMPurify from 'dompurify'
+  import { marked } from 'marked'
   import { useUserStore } from '@/store/modules/user'
   import meAvatar from '@/assets/images/avatar/avatar5.webp'
   import aiAvatar from '@/assets/images/avatar/avatar10.webp'
-  import avatar2 from '@/assets/images/avatar/avatar2.webp'
-  import avatar3 from '@/assets/images/avatar/avatar3.webp'
-  import avatar4 from '@/assets/images/avatar/avatar4.webp'
-  import avatar5 from '@/assets/images/avatar/avatar5.webp'
-  import avatar6 from '@/assets/images/avatar/avatar6.webp'
-  import avatar7 from '@/assets/images/avatar/avatar7.webp'
-  import avatar8 from '@/assets/images/avatar/avatar8.webp'
-  import avatar9 from '@/assets/images/avatar/avatar9.webp'
-  import avatar10 from '@/assets/images/avatar/avatar10.webp'
   import { useAutoLayoutHeight } from '@/hooks/core/useLayoutHeight'
 
   defineOptions({ name: 'TemplateChat' })
 
   const { containerMinHeight } = useAutoLayoutHeight()
 
-  /**
-   * 联系人类型定义
-   */
-  interface Person {
-    id: number
-    name: string
-    email: string
-    avatar: string
-    online?: boolean
-    lastTime: string
-    unread?: number
-  }
-
-  const searchQuery = ref('')
-  const isDrawerVisible = ref(false)
   const isOnline = ref(true)
-  const selectedPerson = ref<Person | null>(null)
   const messageText = ref('')
-  const messageId = ref(10)
+  const messageId = ref(1)
   const userAvatar = ref(meAvatar)
   const messageContainer = ref<HTMLElement | null>(null)
   const isNearBottom = ref(true)
@@ -170,137 +148,6 @@
   }
 
   /**
-   * 联系人列表数据
-   */
-  const personList = ref<Person[]>([
-    {
-      id: 1,
-      name: '梅洛迪·梅西',
-      email: 'melody@altbox.com',
-      avatar: meAvatar,
-      online: true,
-      lastTime: '20小时前',
-      unread: 0
-    },
-    {
-      id: 2,
-      name: '马克·史密斯',
-      email: 'max@kt.com',
-      avatar: avatar2,
-      online: true,
-      lastTime: '2周前',
-      unread: 6
-    },
-    {
-      id: 3,
-      name: '肖恩·宾',
-      email: 'sean@dellito.com',
-      avatar: avatar3,
-      online: false,
-      lastTime: '5小时前',
-      unread: 5
-    },
-    {
-      id: 4,
-      name: '爱丽丝·约翰逊',
-      email: 'alice@domain.com',
-      avatar: avatar4,
-      online: true,
-      lastTime: '1小时前',
-      unread: 2
-    },
-    {
-      id: 5,
-      name: '鲍勃·布朗',
-      email: 'bob@domain.com',
-      avatar: avatar5,
-      online: false,
-      lastTime: '3天前',
-      unread: 1
-    },
-    {
-      id: 6,
-      name: '查理·戴维斯',
-      email: 'charlie@domain.com',
-      avatar: avatar6,
-      online: true,
-      lastTime: '10分钟前',
-      unread: 0
-    },
-    {
-      id: 7,
-      name: '戴安娜·普林斯',
-      email: 'diana@domain.com',
-      avatar: avatar7,
-      online: true,
-      lastTime: '15分钟前',
-      unread: 3
-    },
-    {
-      id: 8,
-      name: '伊桑·亨特',
-      email: 'ethan@domain.com',
-      avatar: avatar8,
-      online: true,
-      lastTime: '5分钟前',
-      unread: 0
-    },
-    {
-      id: 9,
-      name: '杰西卡·琼斯',
-      email: 'jessica@domain.com',
-      avatar: avatar9,
-      online: false,
-      lastTime: '1天前',
-      unread: 4
-    },
-    {
-      id: 10,
-      name: '彼得·帕克',
-      email: 'peter@domain.com',
-      avatar: avatar10,
-      online: true,
-      lastTime: '2小时前',
-      unread: 1
-    },
-    {
-      id: 11,
-      name: '克拉克·肯特',
-      email: 'clark@domain.com',
-      avatar: avatar3,
-      online: true,
-      lastTime: '30分钟前',
-      unread: 2
-    },
-    {
-      id: 12,
-      name: '布鲁斯·韦恩',
-      email: 'bruce@domain.com',
-      avatar: avatar5,
-      online: false,
-      lastTime: '3天前',
-      unread: 0
-    },
-    {
-      id: 13,
-      name: '韦德·威尔逊',
-      email: 'wade@domain.com',
-      avatar: avatar6,
-      online: true,
-      lastTime: '10分钟前',
-      unread: 5
-    }
-  ])
-
-  /**
-   * 选择联系人
-   * @param person 联系人对象
-   */
-  const selectPerson = (person: Person) => {
-    selectedPerson.value = person
-  }
-
-  /**
    * 消息列表数据
    */
   interface ChatMessage {
@@ -311,87 +158,35 @@
     isMe: boolean
     avatar: string
     streaming?: boolean
+    status?: string
   }
 
-  const messages = ref<ChatMessage[]>([
-    {
-      id: 1,
-      sender: 'Art Bot',
-      content: '你好！我是你的AI助手，有什么我可以帮你的吗？',
-      time: '10:00',
-      isMe: false,
-      avatar: aiAvatar
-    },
-    {
-      id: 2,
-      sender: 'Ricky',
-      content: '我想了解一下系统的使用方法。',
-      time: '10:01',
-      isMe: true,
-      avatar: meAvatar
-    },
-    {
-      id: 3,
-      sender: 'Art Bot',
-      content: '好的，我来为您介绍系统的主要功能。首先，您可以通过左侧菜单访问不同的功能模块...',
-      time: '10:02',
-      isMe: false,
-      avatar: aiAvatar
-    },
-    {
-      id: 4,
-      sender: 'Ricky',
-      content: '听起来很不错，能具体讲讲数据分析部分吗？',
-      time: '10:05',
-      isMe: true,
-      avatar: meAvatar
-    },
-    {
-      id: 5,
-      sender: 'Art Bot',
-      content: '当然可以。数据分析模块可以帮助您实时监控关键指标，并生成详细的报表...',
-      time: '10:06',
-      isMe: false,
-      avatar: aiAvatar
-    },
-    {
-      id: 6,
-      sender: 'Ricky',
-      content: '太好了，那我如何开始使用呢？',
-      time: '10:08',
-      isMe: true,
-      avatar: meAvatar
-    },
-    {
-      id: 7,
-      sender: 'Art Bot',
-      content: '您可以先创建一个项目，然后在项目中添加相关的数据源，系统会自动进行分析。',
-      time: '10:09',
-      isMe: false,
-      avatar: aiAvatar
-    },
-    {
-      id: 8,
-      sender: 'Ricky',
-      content: '明白了，谢谢你的帮助！',
-      time: '10:10',
-      isMe: true,
-      avatar: meAvatar
-    },
-    {
-      id: 9,
-      sender: 'Art Bot',
-      content: '不客气，有任何问题随时联系我。',
-      time: '10:11',
-      isMe: false,
-      avatar: aiAvatar
-    }
-  ])
+  const messages = ref<ChatMessage[]>([])
+
+  const statusLabels: Record<string, string> = {
+    start: '正在思考',
+    planning: '分析问题中',
+    analyzing: '理解问题中',
+    executing: '查询相关数据',
+    generating: '生成中',
+    done: '已完成',
+    error: '处理失败'
+  }
+
+  const getStatusLabel = (status: string) => statusLabels[status] || '处理中'
+
+  const renderMarkdown = (content: string) => {
+    if (!content) return ''
+    const html = marked.parse(content, { breaks: true, gfm: true }) as string
+    return DOMPurify.sanitize(html)
+  }
 
   interface ServerSentEvent {
     event: string
     data: string
   }
+
+  const STREAM_CHARACTER_DELAY = 18
 
   /** Resolve both the Vite proxy URL and a production API base URL. */
   const getChatUrl = (): string => {
@@ -425,19 +220,37 @@
     let buffer = ''
     let completed = false
 
-    const processFrame = (frame: string) => {
+    const appendToken = async (token: string) => {
+      for (const character of Array.from(token)) {
+        assistantMessage.content += character
+        scheduleScrollToBottom()
+        await new Promise<void>((resolve) => setTimeout(resolve, STREAM_CHARACTER_DELAY))
+      }
+    }
+
+    const processFrame = async (frame: string) => {
       const serverEvent = parseServerSentEvent(frame)
       if (!serverEvent) return
 
       if (serverEvent.event === 'token') {
-        assistantMessage.content += serverEvent.data
+        await appendToken(serverEvent.data)
         assistantMessage.streaming = true
-        scheduleScrollToBottom()
+      } else if (
+        serverEvent.event === 'start' ||
+        serverEvent.event === 'planning' ||
+        serverEvent.event === 'analyzing' ||
+        serverEvent.event === 'executing' ||
+        serverEvent.event === 'generating'
+      ) {
+        assistantMessage.status = serverEvent.event
+        assistantMessage.streaming = true
       } else if (serverEvent.event === 'error') {
+        assistantMessage.status = 'error'
         assistantMessage.streaming = false
         throw new Error(serverEvent.data || 'AI 服务处理失败')
       } else if (serverEvent.event === 'done') {
         completed = true
+        assistantMessage.status = 'done'
         assistantMessage.streaming = false
       }
     }
@@ -452,11 +265,13 @@
         }
         const frames = buffer.split(/\r?\n\r?\n/)
         buffer = frames.pop() || ''
-        frames.forEach(processFrame)
+        for (const frame of frames) {
+          await processFrame(frame)
+        }
         if (done) break
       }
 
-      if (buffer.trim()) processFrame(buffer)
+      if (buffer.trim()) await processFrame(buffer)
       if (!completed || !assistantMessage.content.trim()) {
         throw new Error('AI 服务未返回有效内容')
       }
@@ -486,8 +301,9 @@
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isMe: false,
       avatar: aiAvatar,
-      streaming: true
-    }
+      streaming: true,
+      status: 'start'
+    })
     messages.value.push(assistantMessage)
 
     messageText.value = ''
@@ -506,7 +322,8 @@
         body: JSON.stringify({
           userId: String(userStore.info.userId ?? 'anonymous'),
           sessionId: sessionId.value,
-          question: text
+          question: text,
+          alias: 'balanced'
         }),
         signal: streamController.signal
       })
@@ -523,6 +340,7 @@
       const isAborted = error instanceof DOMException && error.name === 'AbortError'
       assistantMessage.streaming = false
       if (!isAborted) {
+        assistantMessage.status = 'error'
         const message = error instanceof Error ? error.message : 'AI 服务暂时不可用'
         assistantMessage.content = assistantMessage.content
           ? `${assistantMessage.content}\n\n抱歉，${message}`
@@ -558,44 +376,75 @@
     })
   }
 
-  /**
-   * 打开聊天窗口
-   */
-  const openChat = () => {
-    isDrawerVisible.value = true
-  }
-
   onMounted(() => {
     scheduleScrollToBottom()
-    mittBus.on('openChat', openChat)
-    selectedPerson.value = personList.value[0]
   })
 
   onUnmounted(() => {
     streamController?.abort()
     if (scrollFrame !== null) cancelAnimationFrame(scrollFrame)
-    mittBus.off('openChat', openChat)
   })
 </script>
 
 <style scoped>
-  .typing-cursor {
-    display: inline-block;
-    margin-left: 2px;
-    color: currentColor;
-    animation: blink 0.8s infinite;
+  .chat-status {
+    margin-bottom: 0.35rem;
+    color: var(--el-text-color-secondary);
+    font-size: 0.75rem;
+    line-height: 1.25rem;
   }
 
-  @keyframes blink {
-    0%,
-    50% {
-      opacity: 1;
-    }
-    )
+  .shimmer-text {
+    background: linear-gradient(
+      100deg,
+      var(--el-text-color-secondary) 35%,
+      var(--el-text-color-primary) 50%,
+      var(--el-text-color-secondary) 65%
+    );
+    background-size: 250% 100%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    animation: shimmer 1.8s ease-in-out infinite;
+  }
 
-    51%,
+  .markdown-content {
+    overflow-wrap: anywhere;
+  }
+
+  .markdown-content :deep(p) {
+    margin: 0 0 0.65rem;
+  }
+
+  .markdown-content :deep(p:last-child) {
+    margin-bottom: 0;
+  }
+
+  .markdown-content :deep(ul),
+  .markdown-content :deep(ol) {
+    margin: 0.5rem 0;
+    padding-left: 1.25rem;
+  }
+
+  .markdown-content :deep(pre) {
+    margin: 0.65rem 0;
+    overflow-x: auto;
+    padding: 0.65rem;
+    border-radius: 0.35rem;
+    background: rgb(0 0 0 / 8%);
+  }
+
+  .markdown-content :deep(code) {
+    font-size: 0.9em;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: 100% 0;
+    }
+
     100% {
-      opacity: 0;
+      background-position: -100% 0;
     }
   }
 </style>
