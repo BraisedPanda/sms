@@ -19,3 +19,10 @@ dubbo:
 
 server:
   port: 9091
+
+sms:
+  ai:
+    embedding:
+      endpoint: ${SMS_EMBEDDING_ENDPOINT:}
+      token: ${SMS_EMBEDDING_TOKEN:}
+      model: ${SMS_EMBEDDING_MODEL:text-embedding-3-small}

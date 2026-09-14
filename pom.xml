@@ -32,6 +32,7 @@
         <module>sms-ai</module>
         <module>sms-web</module>
         <module>sms-student</module>
+        <module>sms-knowledge</module>
     </modules>
 
     <dependencyManagement>
@@ -88,6 +89,21 @@
             <dependency>
                 <groupId>com.xqy</groupId>
                 <artifactId>sms-student-provider</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xqy</groupId>
+                <artifactId>sms-knowledge</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xqy</groupId>
+                <artifactId>sms-knowledge-api</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xqy</groupId>
+                <artifactId>sms-knowledge-provider</artifactId>
                 <version>${revision}</version>
             </dependency>
         </dependencies>

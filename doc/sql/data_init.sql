@@ -91,3 +91,20 @@ ON DUPLICATE KEY UPDATE
     version = VALUES(version),
     enabled = VALUES(enabled),
     remark = VALUES(remark);
+
+INSERT INTO ai_tool_definition (
+    id, domain, tool_name, description, argument_specification, keywords, enable
+) VALUES (
+    1000000000000000011,
+    'knowledge',
+    'query_knowledge',
+    'Search enabled knowledge bases using semantic vector retrieval and return source chunks.',
+    'QueryCriteria: queryText(string), embedding(float[]), knowledgeBaseId(long), topK(int), similarityThreshold(double), filter(object)',
+    'knowledge,RAG,document,semantic search,vector,milvus',
+    1
+)
+ON DUPLICATE KEY UPDATE
+    description = VALUES(description),
+    argument_specification = VALUES(argument_specification),
+    keywords = VALUES(keywords),
+    enable = VALUES(enable);

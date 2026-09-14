@@ -13,6 +13,8 @@ public class AiTask {
     private String subQuestion;
     private QueryCriteria query;
     private List<String> missingArgs = new ArrayList<>();
+    /** Optional pre-computed embedding supplied by the planner/vectorizer. */
+    private List<Float> embedding = new ArrayList<>();
 
     public AiTask() {
     }
@@ -90,4 +92,7 @@ public class AiTask {
     public void setMissngArgs(List<String> missingArgs) {
         this.missingArgs = missingArgs;
     }
+
+    public List<Float> getEmbedding() { return embedding; }
+    public void setEmbedding(List<Float> embedding) { this.embedding = embedding; }
 }
