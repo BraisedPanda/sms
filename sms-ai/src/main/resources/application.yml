@@ -23,6 +23,14 @@ server:
 sms:
   ai:
     embedding:
-      endpoint: ${SMS_EMBEDDING_ENDPOINT:}
+      # Local, free embedding service. Override these values for another OpenAI-compatible provider.
+      endpoint: ${SMS_EMBEDDING_ENDPOINT:http://localhost:11434/v1/embeddings}
       token: ${SMS_EMBEDDING_TOKEN:}
-      model: ${SMS_EMBEDDING_MODEL:text-embedding-3-small}
+      model: ${SMS_EMBEDDING_MODEL:bge-m3}
+      dimensions: ${SMS_EMBEDDING_DIMENSIONS:1024}
+    knowledge-ingestion:
+      postgres:
+        url: ${SMS_KNOWLEDGE_POSTGRES_URL:jdbc:postgresql://localhost:5432/sms-dev}
+        username: ${SMS_KNOWLEDGE_POSTGRES_USERNAME:postgres}
+        password: ${SMS_KNOWLEDGE_POSTGRES_PASSWORD:postgres123}
+        table: ${SMS_KNOWLEDGE_POSTGRES_TABLE:ai_knowledge_chunk}

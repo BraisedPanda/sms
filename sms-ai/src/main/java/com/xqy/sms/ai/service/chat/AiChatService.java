@@ -13,6 +13,8 @@ import dev.langchain4j.service.AiServices;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.stereotype.Component;
 
+import java.util.function.Consumer;
+
 @Component
 public class AiChatService {
 
@@ -76,6 +78,12 @@ public class AiChatService {
 
     public void answer(SseEmitter emitter, String resultJson, String chatMemoryId,
                        String requestId, String alias) {
+        answer(emitter, resultJson, chatMemoryId, requestId, alias, () -> { }, error -> { });
+    }
+
+    /** Streams a composed answer and reports terminal status to the task-run orchestrator. */
+    public void answer(SseEmitter emitter, String resultJson, String chatMemoryId,
+                       String requestId, String alias, Runnable onSuccess, Consumer<Throwable> onFailure) {
         if (resultJson == null || resultJson.isBlank()) {
             sendEvent(emitter, AiConstants.SSE_EVENT.ERROR, "工具没有返回结果");
             emitter.complete();
@@ -87,17 +95,20 @@ public class AiChatService {
                     .onPartialResponse(token -> sendEvent(emitter, AiConstants.SSE_EVENT.TOKEN, token))
                     .onCompleteResponse(response -> {
                         finishRequest(requestId, response);
+                        onSuccess.run();
                         sendEvent(emitter, AiConstants.SSE_EVENT.DONE, "完成");
                         emitter.complete();
                     })
                     .onError(error -> {
                         requestLogService.fail(requestId, error.getClass().getSimpleName(), error);
+                        onFailure.accept(error);
                         sendEvent(emitter, AiConstants.SSE_EVENT.ERROR, errorMessage(error));
                         emitter.completeWithError(error);
                     })
                     .start();
         } catch (Exception error) {
             requestLogService.fail(requestId, error.getClass().getSimpleName(), error);
+            onFailure.accept(error);
             sendEvent(emitter, AiConstants.SSE_EVENT.ERROR, errorMessage(error));
             emitter.completeWithError(error);
         }

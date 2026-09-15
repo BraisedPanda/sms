@@ -101,6 +101,72 @@ CREATE TABLE IF NOT EXISTS ai_request_log (
     KEY idx_ai_request_log_start_time (start_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI request invocation log';
 
+-- AI task run lifecycle. A run groups planning, tool execution and compose steps.
+CREATE TABLE IF NOT EXISTS ai_task_run (
+    id BIGINT NOT NULL COMMENT 'primary key',
+    run_id VARCHAR(64) NOT NULL COMMENT 'run trace id',
+    request_id VARCHAR(64) NOT NULL,
+    user_id VARCHAR(64) DEFAULT NULL,
+    session_id VARCHAR(128) DEFAULT NULL,
+    run_type VARCHAR(32) NOT NULL DEFAULT 'CHAT',
+    status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
+    question TEXT NOT NULL,
+    model_alias VARCHAR(64) DEFAULT NULL,
+    plan_json LONGTEXT DEFAULT NULL,
+    idempotency_key VARCHAR(128) DEFAULT NULL,
+    current_step_no INT NOT NULL DEFAULT 0,
+    cancel_request TINYINT(1) NOT NULL DEFAULT 0,
+    cancel_request_time DATETIME(3) DEFAULT NULL,
+    start_time DATETIME(3) NOT NULL,
+    finish_time DATETIME(3) DEFAULT NULL,
+    error_code VARCHAR(64) DEFAULT NULL,
+    error_message TEXT DEFAULT NULL,
+    sys_creator VARCHAR(64) DEFAULT NULL,
+    sys_modifier VARCHAR(64) DEFAULT NULL,
+    sys_create_time DATETIME DEFAULT NULL,
+    sys_update_time DATETIME DEFAULT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_ai_task_run_run_id (run_id),
+    UNIQUE KEY uq_ai_task_run_idempotency (idempotency_key),
+    KEY idx_ai_task_run_request (request_id),
+    KEY idx_ai_task_run_status (status),
+    KEY idx_ai_task_run_session (session_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI task run lifecycle';
+
+-- AI task step lifecycle. A step is a plan, tool or compose operation.
+CREATE TABLE IF NOT EXISTS ai_task_step (
+    id BIGINT NOT NULL COMMENT 'primary key',
+    step_id VARCHAR(64) NOT NULL COMMENT 'step trace id',
+    task_run_id VARCHAR(64) NOT NULL,
+    step_no INT NOT NULL,
+    step_type VARCHAR(32) NOT NULL,
+    domain VARCHAR(128) DEFAULT NULL,
+    tool_name VARCHAR(128) DEFAULT NULL,
+    status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
+    input_json LONGTEXT DEFAULT NULL,
+    output_json LONGTEXT DEFAULT NULL,
+    attempt INT NOT NULL DEFAULT 0,
+    max_attempt INT NOT NULL DEFAULT 3,
+    timeout_ms BIGINT NOT NULL DEFAULT 30000,
+    next_retry_time DATETIME(3) DEFAULT NULL,
+    idempotency_key VARCHAR(128) NOT NULL,
+    lease_expire_time DATETIME(3) DEFAULT NULL,
+    start_time DATETIME(3) DEFAULT NULL,
+    finish_time DATETIME(3) DEFAULT NULL,
+    error_code VARCHAR(64) DEFAULT NULL,
+    error_message TEXT DEFAULT NULL,
+    sys_creator VARCHAR(64) DEFAULT NULL,
+    sys_modifier VARCHAR(64) DEFAULT NULL,
+    sys_create_time DATETIME DEFAULT NULL,
+    sys_update_time DATETIME DEFAULT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_ai_task_step_step_id (step_id),
+    UNIQUE KEY uq_ai_task_step_run_no (task_run_id, step_no),
+    UNIQUE KEY uq_ai_task_step_idempotency (idempotency_key),
+    KEY idx_ai_task_step_status_lease (status, lease_expire_time),
+    KEY idx_ai_task_step_run (task_run_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI task step lifecycle';
+
 -- AI tool execution log
 CREATE TABLE IF NOT EXISTS ai_tool_execute_log (
     id BIGINT NOT NULL COMMENT 'primary key',
@@ -169,6 +235,24 @@ CREATE TABLE IF NOT EXISTS ai_knowledge_document (
     KEY idx_ai_knowledge_document_base (knowledge_base_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='RAG documents';
 
+-- Persistent staging details used as the source for vector database ingestion.
+CREATE TABLE IF NOT EXISTS ai_knowledge_document_detail (
+    id BIGINT NOT NULL,
+    document_id BIGINT NOT NULL,
+    document_version_id BIGINT NOT NULL,
+    chunk_no INT NOT NULL,
+    content TEXT NOT NULL,
+    content_type VARCHAR(64) DEFAULT 'text/plain',
+    metadata JSON DEFAULT NULL,
+    sys_creator VARCHAR(64) DEFAULT NULL,
+    sys_modifier VARCHAR(64) DEFAULT NULL,
+    sys_create_time DATETIME DEFAULT NULL,
+    sys_update_time DATETIME DEFAULT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_ai_knowledge_document_detail_chunk (document_version_id, chunk_no),
+    KEY idx_ai_knowledge_document_detail_document (document_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='RAG document content staging details';
+
 CREATE TABLE IF NOT EXISTS ai_knowledge_document_version (
     id BIGINT NOT NULL,
     document_id BIGINT NOT NULL,
@@ -232,9 +316,9 @@ CREATE TABLE IF NOT EXISTS ai_knowledge_chunk
 
     metadata            JSONB,
 
-    embedding           VECTOR(1536),
+    embedding           VECTOR(1024),
 
-    status              SMALLINT NOT NULL DEFAULT 1,
+    status              VARCHAR(16) NOT NULL DEFAULT 'ACTIVE',
 
     sys_creator         BIGINT,
     sys_modifier        BIGINT,

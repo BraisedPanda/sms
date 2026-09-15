@@ -2,7 +2,8 @@ package com.xqy.sms.ai.controller;
 
 import com.xqy.sms.ai.model.AiConstants;
 import com.xqy.sms.ai.model.AiTaskRequest;
-import com.xqy.sms.ai.service.plan.AiPlanService;
+import com.xqy.sms.ai.service.chat.AiChatService;
+import com.xqy.sms.ai.service.conversation.ConversationApplicationService;
 import com.xqy.sms.common.dto.ApiResponse;
 import com.xqy.sms.student.api.entity.Student;
 import com.xqy.sms.student.api.service.StudentService;
@@ -20,11 +21,13 @@ public class AiChatController {
     private StudentService studentService;
 
 
-    private final AiPlanService aiPlanService;
+    private final ConversationApplicationService conversationApplicationService;
+    private final AiChatService aiChatService;
 
-    public AiChatController(AiPlanService aiPlanService) {
+    public AiChatController(ConversationApplicationService conversationApplicationService, AiChatService aiChatService) {
 
-        this.aiPlanService = aiPlanService;
+        this.conversationApplicationService = conversationApplicationService;
+        this.aiChatService = aiChatService;
     }
 
     @GetMapping("/test1")
@@ -36,16 +39,21 @@ public class AiChatController {
 
     @GetMapping("/sample-chat")
     public ApiResponse<?> sampleChat(@RequestParam String question) {
-        String answer = aiPlanService.sampleChat(question);
-        return ApiResponse.success(answer);
+        return ApiResponse.success(aiChatService.sampleChat(question));
     }
 
 
     @PostMapping("/chat")
     public SseEmitter chat(@RequestBody AiTaskRequest aiTaskRequest) {
         aiTaskRequest.setAlias(AiConstants.MODEL_ALIAS.BALANCED);
-        return aiPlanService.chat(aiTaskRequest);
+        return conversationApplicationService.start(aiTaskRequest);
 
+    }
+
+    @PostMapping("/runs/{runId}/cancel")
+    public ApiResponse<Void> cancel(@PathVariable String runId) {
+        conversationApplicationService.cancel(runId);
+        return ApiResponse.success(null);
     }
 
 

@@ -11,8 +11,8 @@ spring:
 
 sms:
   knowledge:
-    # Use "postgres" to route queryVector through pgvector; default remains Milvus.
-    vector-store: ${SMS_KNOWLEDGE_VECTOR_STORE:milvus}
+    # Use "milvus" to route queryVector through Milvus; PostgreSQL/pgvector is the default.
+    vector-store: ${SMS_KNOWLEDGE_VECTOR_STORE:postgres}
     postgres:
       url: ${SMS_KNOWLEDGE_POSTGRES_URL:jdbc:postgresql://localhost:5432/sms-dev}
       username: ${SMS_KNOWLEDGE_POSTGRES_USERNAME:postgres}
