@@ -1,48 +1,48 @@
 spring:
   application:
-    name: ${SMS_AI_APPLICATION_NAME}
+    name: ${AI_APPLICATION_NAME}
   config:
     import:
       - optional:file:.env[.properties]
-      - optional:nacos:${SMS_NACOS_SERVER_ADDR}
+      - optional:nacos:${NACOS_SERVER_ADDR}
   datasource:
-    url: ${SMS_AI_DATASOURCE_URL}
-    username: ${SMS_AI_DATASOURCE_USERNAME}
-    password: ${SMS_AI_DATASOURCE_PASSWORD}
-    driver-class-name: ${SMS_AI_DATASOURCE_DRIVER_CLASS_NAME}
+    url: ${AI_DATASOURCE_URL}
+    username: ${AI_DATASOURCE_USERNAME}
+    password: ${AI_DATASOURCE_PASSWORD}
+    driver-class-name: ${AI_DATASOURCE_DRIVER_CLASS_NAME}
 
 dubbo:
   application:
-    name: ${SMS_AI_DUBBO_APPLICATION_NAME}
+    name: ${AI_DUBBO_APPLICATION_NAME}
   registry:
-    address: nacos://${SMS_NACOS_SERVER_ADDR}
+    address: nacos://${NACOS_SERVER_ADDR}
 
 server:
-  port: ${SMS_AI_SERVER_PORT}
+  port: ${AI_SERVER_PORT}
 
 sms:
   ai:
     embedding:
-      endpoint: ${SMS_EMBEDDING_ENDPOINT}
-      token: ${SMS_EMBEDDING_TOKEN}
-      model: ${SMS_EMBEDDING_MODEL}
-      dimensions: ${SMS_EMBEDDING_DIMENSIONS}
+      endpoint: ${EMBEDDING_ENDPOINT}
+      token: ${EMBEDDING_TOKEN}
+      model: ${EMBEDDING_MODEL}
+      dimensions: ${EMBEDDING_DIMENSIONS}
     knowledge-ingestion:
-      default-limit: ${SMS_AI_KNOWLEDGE_INGESTION_DEFAULT_LIMIT}
-      max-limit: ${SMS_AI_KNOWLEDGE_INGESTION_MAX_LIMIT}
-      default-index-revision: ${SMS_AI_KNOWLEDGE_INGESTION_DEFAULT_INDEX_REVISION}
+      default-limit: ${AI_KNOWLEDGE_INGESTION_DEFAULT_LIMIT}
+      max-limit: ${AI_KNOWLEDGE_INGESTION_MAX_LIMIT}
+      default-index-revision: ${AI_KNOWLEDGE_INGESTION_DEFAULT_INDEX_REVISION}
       postgres:
-        url: ${SMS_KNOWLEDGE_POSTGRES_URL}
-        username: ${SMS_KNOWLEDGE_POSTGRES_USERNAME}
-        password: ${SMS_KNOWLEDGE_POSTGRES_PASSWORD}
-        table: ${SMS_KNOWLEDGE_POSTGRES_TABLE}
+        url: ${KNOWLEDGE_POSTGRES_URL}
+        username: ${KNOWLEDGE_POSTGRES_USERNAME}
+        password: ${KNOWLEDGE_POSTGRES_PASSWORD}
+        table: ${KNOWLEDGE_POSTGRES_TABLE}
     workflow:
-      core-pool-size: ${SMS_AI_WORKFLOW_CORE_POOL_SIZE}
-      max-pool-size: ${SMS_AI_WORKFLOW_MAX_POOL_SIZE}
-      queue-capacity: ${SMS_AI_WORKFLOW_QUEUE_CAPACITY}
-      max-attempts: ${SMS_AI_WORKFLOW_MAX_ATTEMPTS}
-      step-timeout-ms: ${SMS_AI_WORKFLOW_STEP_TIMEOUT_MS}
-      business-result-ttl-minutes: ${SMS_AI_WORKFLOW_BUSINESS_RESULT_TTL_MINUTES}
-    task-recovery-delay-ms: ${SMS_AI_TASK_RECOVERY_DELAY_MS}
-    sse-emitter-timeout-millis: ${SMS_AI_SSE_EMITTER_TIMEOUT_MILLIS}
-    chat-memory-max-messages: ${SMS_AI_CHAT_MEMORY_MAX_MESSAGES}
+      core-pool-size: ${AI_WORKFLOW_CORE_POOL_SIZE}
+      max-pool-size: ${AI_WORKFLOW_MAX_POOL_SIZE}
+      queue-capacity: ${AI_WORKFLOW_QUEUE_CAPACITY}
+      max-attempts: ${AI_WORKFLOW_MAX_ATTEMPTS}
+      step-timeout-ms: ${AI_WORKFLOW_STEP_TIMEOUT_MS}
+      business-result-ttl-minutes: ${AI_WORKFLOW_BUSINESS_RESULT_TTL_MINUTES}
+    task-recovery-delay-ms: ${AI_TASK_RECOVERY_DELAY_MS}
+    sse-emitter-timeout-millis: ${AI_SSE_EMITTER_TIMEOUT_MILLIS}
+    chat-memory-max-messages: ${AI_CHAT_MEMORY_MAX_MESSAGES}

@@ -1,40 +1,40 @@
 spring:
   application:
-    name: ${SMS_KNOWLEDGE_APPLICATION_NAME}
+    name: ${KNOWLEDGE_APPLICATION_NAME}
   config:
     import:
       - optional:file:.env[.properties]
-      - optional:nacos:${SMS_NACOS_SERVER_ADDR}
+      - optional:nacos:${NACOS_SERVER_ADDR}
   datasource:
-    url: ${SMS_KNOWLEDGE_DATASOURCE_URL}
-    username: ${SMS_KNOWLEDGE_DATASOURCE_USERNAME}
-    password: ${SMS_KNOWLEDGE_DATASOURCE_PASSWORD}
-    driver-class-name: ${SMS_KNOWLEDGE_DATASOURCE_DRIVER_CLASS_NAME}
+    url: ${KNOWLEDGE_DATASOURCE_URL}
+    username: ${KNOWLEDGE_DATASOURCE_USERNAME}
+    password: ${KNOWLEDGE_DATASOURCE_PASSWORD}
+    driver-class-name: ${KNOWLEDGE_DATASOURCE_DRIVER_CLASS_NAME}
 
 sms:
   knowledge:
     # Use "milvus" to route queryVector through Milvus; PostgreSQL/pgvector is the default.
-    vector-store: ${SMS_KNOWLEDGE_VECTOR_STORE}
+    vector-store: ${KNOWLEDGE_VECTOR_STORE}
     postgres:
-      url: ${SMS_KNOWLEDGE_POSTGRES_URL}
-      username: ${SMS_KNOWLEDGE_POSTGRES_USERNAME}
-      password: ${SMS_KNOWLEDGE_POSTGRES_PASSWORD}
-      table: ${SMS_KNOWLEDGE_POSTGRES_TABLE}
+      url: ${KNOWLEDGE_POSTGRES_URL}
+      username: ${KNOWLEDGE_POSTGRES_USERNAME}
+      password: ${KNOWLEDGE_POSTGRES_PASSWORD}
+      table: ${KNOWLEDGE_POSTGRES_TABLE}
     milvus:
-      endpoint: ${SMS_MILVUS_ENDPOINT}
-      token: ${SMS_MILVUS_TOKEN}
-      collection: ${SMS_MILVUS_COLLECTION}
+      endpoint: ${MILVUS_ENDPOINT}
+      token: ${MILVUS_TOKEN}
+      collection: ${MILVUS_COLLECTION}
 
 server:
-  port: ${SMS_KNOWLEDGE_SERVER_PORT}
+  port: ${KNOWLEDGE_SERVER_PORT}
 
 dubbo:
   application:
-    name: ${SMS_KNOWLEDGE_DUBBO_APPLICATION_NAME}
+    name: ${KNOWLEDGE_DUBBO_APPLICATION_NAME}
   protocol:
     name: dubbo
-    port: ${SMS_KNOWLEDGE_DUBBO_PROTOCOL_PORT}
+    port: ${KNOWLEDGE_DUBBO_PROTOCOL_PORT}
   registry:
-    address: nacos://${SMS_NACOS_SERVER_ADDR}
+    address: nacos://${NACOS_SERVER_ADDR}
   scan:
     base-packages: com.xqy.sms.knowledge.provider.service

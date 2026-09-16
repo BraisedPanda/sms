@@ -1,27 +1,27 @@
 spring:
   application:
-    name: ${SMS_STUDENT_APPLICATION_NAME}
+    name: ${STUDENT_APPLICATION_NAME}
   config:
     import:
       - optional:file:.env[.properties]
-      - optional:nacos:${SMS_NACOS_SERVER_ADDR}
+      - optional:nacos:${NACOS_SERVER_ADDR}
   datasource:
-    url: ${SMS_STUDENT_DATASOURCE_URL}
-    username: ${SMS_STUDENT_DATASOURCE_USERNAME}
-    password: ${SMS_STUDENT_DATASOURCE_PASSWORD}
-    driver-class-name: ${SMS_STUDENT_DATASOURCE_DRIVER_CLASS_NAME}
+    url: ${STUDENT_DATASOURCE_URL}
+    username: ${STUDENT_DATASOURCE_USERNAME}
+    password: ${STUDENT_DATASOURCE_PASSWORD}
+    driver-class-name: ${STUDENT_DATASOURCE_DRIVER_CLASS_NAME}
 
 server:
-  port: ${SMS_STUDENT_SERVER_PORT}
+  port: ${STUDENT_SERVER_PORT}
 
 dubbo:
   application:
-    name: ${SMS_STUDENT_DUBBO_APPLICATION_NAME}
+    name: ${STUDENT_DUBBO_APPLICATION_NAME}
   protocol:
     name: dubbo
-    port: ${SMS_STUDENT_DUBBO_PROTOCOL_PORT}
+    port: ${STUDENT_DUBBO_PROTOCOL_PORT}
   registry:
-    address: nacos://${SMS_NACOS_SERVER_ADDR}
+    address: nacos://${NACOS_SERVER_ADDR}
   scan:
     base-packages: com.xqy.sms.student.provider.service # Dubbo服务接口实现类所在的包
 

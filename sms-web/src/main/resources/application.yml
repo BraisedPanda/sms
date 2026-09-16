@@ -1,20 +1,20 @@
 spring:
   application:
-    name: ${SMS_WEB_APPLICATION_NAME}
+    name: ${WEB_APPLICATION_NAME}
   config:
     import: optional:file:.env[.properties]
   datasource:
-    url: ${SMS_WEB_DATASOURCE_URL}
-    username: ${SMS_WEB_DATASOURCE_USERNAME}
-    password: ${SMS_WEB_DATASOURCE_PASSWORD}
-    driver-class-name: ${SMS_WEB_DATASOURCE_DRIVER_CLASS_NAME}
+    url: ${WEB_DATASOURCE_URL}
+    username: ${WEB_DATASOURCE_USERNAME}
+    password: ${WEB_DATASOURCE_PASSWORD}
+    driver-class-name: ${WEB_DATASOURCE_DRIVER_CLASS_NAME}
 
 server:
-  port: ${SMS_WEB_SERVER_PORT}
+  port: ${WEB_SERVER_PORT}
 
 sms:
   web:
     jwt:
-      secret: ${SMS_WEB_JWT_SECRET}
-      access-token-ttl-seconds: ${SMS_WEB_JWT_ACCESS_TOKEN_TTL_SECONDS}
-      refresh-token-ttl-seconds: ${SMS_WEB_JWT_REFRESH_TOKEN_TTL_SECONDS}
+      secret: ${WEB_JWT_SECRET}
+      access-token-ttl-seconds: ${WEB_JWT_ACCESS_TOKEN_TTL_SECONDS}
+      refresh-token-ttl-seconds: ${WEB_JWT_REFRESH_TOKEN_TTL_SECONDS}

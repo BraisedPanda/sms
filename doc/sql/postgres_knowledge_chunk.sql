@@ -1,5 +1,5 @@
 -- PostgreSQL/pgvector schema for the default sms-knowledge vector backend.
--- Override it with SMS_KNOWLEDGE_VECTOR_STORE=milvus when using Milvus.
+-- Override it with KNOWLEDGE_VECTOR_STORE=milvus when using Milvus.
 CREATE EXTENSION IF NOT EXISTS vector;
 
 CREATE TABLE IF NOT EXISTS ai_knowledge_chunk (
