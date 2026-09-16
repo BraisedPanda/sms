@@ -15,6 +15,6 @@ server:
 sms:
   web:
     jwt:
-      secret: ${WEB_JWT_SECRET}
-      access-token-ttl-seconds: ${WEB_JWT_ACCESS_TOKEN_TTL_SECONDS}
-      refresh-token-ttl-seconds: ${WEB_JWT_REFRESH_TOKEN_TTL_SECONDS}
+      secret: ${JWT_SECRET}
+      access-token-ttl-seconds: ${JWT_ACCESS_TOKEN_TTL_SECONDS}
+      refresh-token-ttl-seconds: ${JWT_REFRESH_TOKEN_TTL_SECONDS}

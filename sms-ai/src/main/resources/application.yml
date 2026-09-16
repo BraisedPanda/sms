@@ -22,6 +22,10 @@ server:
 
 sms:
   ai:
+    jwt:
+      secret: ${JWT_SECRET}
+      access-token-ttl-seconds: ${JWT_ACCESS_TOKEN_TTL_SECONDS}
+      refresh-token-ttl-seconds: ${JWT_REFRESH_TOKEN_TTL_SECONDS}
     embedding:
       endpoint: ${EMBEDDING_ENDPOINT}
       token: ${EMBEDDING_TOKEN}

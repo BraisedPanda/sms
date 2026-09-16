@@ -3,10 +3,11 @@ package com.xqy.sms.web.application.auth;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.xqy.sms.common.entity.SysUser;
 import com.xqy.sms.common.entity.SysUserSession;
+import com.xqy.sms.common.security.jwt.JwtTokenService;
+import com.xqy.sms.common.security.jwt.JwtUserContext;
 import com.xqy.sms.web.infrastructure.persistence.mapper.SysAuthorizationMapper;
 import com.xqy.sms.web.infrastructure.persistence.mapper.SysUserMapper;
 import com.xqy.sms.web.infrastructure.persistence.mapper.SysUserSessionMapper;
-import io.jsonwebtoken.Claims;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -52,8 +53,9 @@ public class AuthService {
         session.setRefreshExpireTime(now.plusSeconds(jwtTokenService.refreshTokenTtlSeconds()));
         session.setStatus(ACTIVE);
         sessionMapper.insert(session);
-        String accessToken = jwtTokenService.createAccessToken(user.getId(), session.getId());
-        String refreshToken = jwtTokenService.createRefreshToken(user.getId(), session.getId());
+        JwtUserContext context = userContext(user.getId(), session.getId());
+        String accessToken = jwtTokenService.createAccessToken(context);
+        String refreshToken = jwtTokenService.createRefreshToken(context);
         session.setAccessToken(accessToken);
         session.setRefreshToken(refreshToken);
         sessionMapper.updateById(session);
@@ -64,14 +66,17 @@ public class AuthService {
     }
 
     public TokenPair refresh(String refreshToken) {
-        Claims claims = jwtTokenService.parse(refreshToken);
-        if (!"refresh".equals(claims.get("type", String.class))) throw new InvalidCredentialsException();
-        Long sessionId = claims.get("sid", Long.class);
-        SysUserSession session = sessionMapper.selectById(sessionId);
+        JwtUserContext context = jwtTokenService.verify(refreshToken);
+        if (!JwtTokenService.REFRESH_TOKEN.equals(context.tokenType())) throw new InvalidCredentialsException();
+        SysUserSession session = sessionMapper.selectById(context.sessionId());
         if (session == null || !ACTIVE.equals(session.getStatus()) || !refreshToken.equals(session.getRefreshToken())
-                || session.getRefreshExpireTime().isBefore(LocalDateTime.now())) throw new InvalidCredentialsException();
-        String accessToken = jwtTokenService.createAccessToken(session.getUserId(), session.getId());
-        String nextRefreshToken = jwtTokenService.createRefreshToken(session.getUserId(), session.getId());
+                || session.getRefreshExpireTime().isBefore(LocalDateTime.now())
+                || !context.userId().equals(session.getUserId())) throw new InvalidCredentialsException();
+        SysUser user = userMapper.selectById(session.getUserId());
+        if (user == null || !ENABLED.equals(user.getStatus())) throw new InvalidCredentialsException();
+        JwtUserContext refreshedContext = userContext(session.getUserId(), session.getId());
+        String accessToken = jwtTokenService.createAccessToken(refreshedContext);
+        String nextRefreshToken = jwtTokenService.createRefreshToken(refreshedContext);
         LocalDateTime now = LocalDateTime.now();
         session.setAccessToken(accessToken);
         session.setRefreshToken(nextRefreshToken);
@@ -82,12 +87,11 @@ public class AuthService {
     }
 
     public AuthenticatedUser authenticate(String accessToken) {
-        Claims claims = jwtTokenService.parse(accessToken);
-        if (!"access".equals(claims.get("type", String.class))) throw new InvalidCredentialsException();
-        Long sessionId = claims.get("sid", Long.class);
-        SysUserSession session = sessionMapper.selectById(sessionId);
+        JwtUserContext context = jwtTokenService.verifyAccessToken(accessToken);
+        SysUserSession session = sessionMapper.selectById(context.sessionId());
         if (session == null || !ACTIVE.equals(session.getStatus()) || !accessToken.equals(session.getAccessToken())
-                || session.getExpireTime().isBefore(LocalDateTime.now())) throw new InvalidCredentialsException();
+                || session.getExpireTime().isBefore(LocalDateTime.now())
+                || !context.userId().equals(session.getUserId())) throw new InvalidCredentialsException();
         SysUser user = userMapper.selectById(session.getUserId());
         if (user == null || !ENABLED.equals(user.getStatus())) throw new InvalidCredentialsException();
         return new AuthenticatedUser(user, authorizationMapper.findRoleCodes(user.getId()),
@@ -106,6 +110,11 @@ public class AuthService {
         String normalized = userAgent.toLowerCase();
         return normalized.contains("mobile") || normalized.contains("android") || normalized.contains("iphone")
                 ? "MOBILE" : "DESKTOP";
+    }
+
+    private JwtUserContext userContext(Long userId, Long sessionId) {
+        return new JwtUserContext(userId, sessionId, null, authorizationMapper.findRoleCodes(userId),
+                authorizationMapper.findButtonAuthorities(userId), List.of(), JwtTokenService.ACCESS_TOKEN);
     }
 
     public record TokenPair(String token, String refreshToken) { }

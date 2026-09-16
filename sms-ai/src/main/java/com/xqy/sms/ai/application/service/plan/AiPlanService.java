@@ -5,6 +5,7 @@ import com.xqy.sms.ai.domain.model.AiTask;
 import com.xqy.sms.ai.domain.model.AiTaskRequest;
 import com.xqy.sms.ai.application.service.chat.AiChatService;
 import com.xqy.sms.ai.application.service.conversation.ConversationApplicationService;
+import com.xqy.sms.common.security.jwt.JwtUserContext;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -25,7 +26,9 @@ public class AiPlanService {
     }
 
     public String sampleChat(String question) { return chatService.sampleChat(question); }
-    public SseEmitter chat(AiTaskRequest request) { return conversationService.start(request); }
+    public SseEmitter chat(AiTaskRequest request, JwtUserContext userContext) {
+        return conversationService.start(request, userContext);
+    }
     public List<AiTask> planTasks(String question, String businessContext) {
         return planTasks(question, businessContext, AiConstants.MODEL_ALIAS.STRONG);
     }

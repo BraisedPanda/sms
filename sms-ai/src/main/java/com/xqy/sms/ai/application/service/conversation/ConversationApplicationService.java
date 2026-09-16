@@ -8,6 +8,7 @@ import com.xqy.sms.ai.domain.model.AiTaskResult;
 import com.xqy.sms.ai.application.service.chat.AiChatService;
 import com.xqy.sms.ai.application.service.execution.TaskExecutionService;
 import com.xqy.sms.ai.infrastructure.service.log.AiRequestLogService;
+import com.xqy.sms.common.security.jwt.JwtUserContext;
 import com.xqy.sms.ai.application.service.plan.TaskPlannerService;
 import com.xqy.sms.ai.application.service.run.AiTaskRunService;
 import com.xqy.sms.ai.application.service.transport.SseTransportService;
@@ -61,11 +62,13 @@ public class ConversationApplicationService {
         this.businessResultTtlMinutes = businessResultTtlMinutes;
     }
 
-    public SseEmitter start(AiTaskRequest request) {
+    public SseEmitter start(AiTaskRequest request, JwtUserContext userContext) {
         validate(request);
+        if (userContext == null) throw new IllegalArgumentException("authenticated user context must not be null");
         String alias = request.getAlias() == null || request.getAlias().isBlank()
                 ? AiConstants.MODEL_ALIAS.BALANCED : request.getAlias().trim();
-        AiTaskRun run = runService.createOrReuse(UUID.randomUUID().toString(), request.getUserId(), request.getSessionId(),
+        AiTaskRun run = runService.createOrReuse(UUID.randomUUID().toString(), String.valueOf(userContext.userId()),
+                String.valueOf(userContext.sessionId()),
                 request.getQuestion(), alias, request.getIdempotencyKey());
         SseEmitter emitter = transport.createEmitter();
         transport.send(emitter, AiConstants.SSE_EVENT.START, java.util.Map.of("runId", run.getRunId()));
@@ -81,8 +84,9 @@ public class ConversationApplicationService {
         return emitter;
     }
 
-    public void cancel(String runId) {
-        runService.cancel(runId);
+    public void cancel(String runId, JwtUserContext userContext) {
+        if (userContext == null) throw new IllegalArgumentException("authenticated user context must not be null");
+        runService.cancel(runId, String.valueOf(userContext.userId()));
         executionService.cancel(runId);
     }
 

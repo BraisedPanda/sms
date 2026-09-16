@@ -28,7 +28,11 @@ public class AiTaskRunService {
                                    String modelAlias, String idempotencyKey) {
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
             AiTaskRun existing = findByIdempotencyKey(idempotencyKey);
-            if (existing != null) return existing;
+            if (existing != null) {
+                if (java.util.Objects.equals(existing.getUserId(), userId)
+                        && java.util.Objects.equals(existing.getSessionId(), sessionId)) return existing;
+                throw new RunOwnershipException();
+            }
         }
         AiTaskRun run = new AiTaskRun();
         run.setRunId(UUID.randomUUID().toString());
@@ -149,8 +153,11 @@ public class AiTaskRunService {
         updateRun(runId, AiTaskRunStatus.FAILED, code, message, run -> { });
     }
 
-    public void cancel(String runId) {
+    public void cancel(String runId, String userId) {
         AiTaskRun run = requireRun(runId);
+        if (!java.util.Objects.equals(run.getUserId(), userId)) {
+            throw new RunOwnershipException();
+        }
         if (AiTaskRunStatus.isTerminal(run.getStatus())) return;
         run.setCancelRequest(true);
         run.setCancelRequestTime(LocalDateTime.now());
@@ -210,4 +217,6 @@ public class AiTaskRunService {
     private String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
     }
+
+    public static class RunOwnershipException extends RuntimeException { }
 }
