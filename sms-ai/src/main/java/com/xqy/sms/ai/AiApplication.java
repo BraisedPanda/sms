@@ -11,7 +11,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableDubbo
 @EnableScheduling
 @SpringBootApplication
-@MapperScan("com.xqy.sms.ai.mapper")
+@MapperScan("com.xqy.sms.ai.infrastructure.persistence.mapper")
 public class AiApplication {
 
     public static void main(String[] args) {

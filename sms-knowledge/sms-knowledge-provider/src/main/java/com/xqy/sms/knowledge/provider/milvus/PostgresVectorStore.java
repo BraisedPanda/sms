@@ -26,10 +26,10 @@ public class PostgresVectorStore implements MilvusVectorStore {
     private final String tableName;
 
     public PostgresVectorStore(ObjectMapper objectMapper,
-                               @Value("${sms.knowledge.postgres.url:jdbc:postgresql://localhost:5432/sms-dev}") String url,
-                               @Value("${sms.knowledge.postgres.username:postgres}") String username,
-                               @Value("${sms.knowledge.postgres.password:postgres123}") String password,
-                               @Value("${sms.knowledge.postgres.table:ai_knowledge_chunk}") String tableName) {
+                               @Value("${sms.knowledge.postgres.url}") String url,
+                               @Value("${sms.knowledge.postgres.username}") String username,
+                               @Value("${sms.knowledge.postgres.password}") String password,
+                               @Value("${sms.knowledge.postgres.table}") String tableName) {
         this.objectMapper = objectMapper;
         this.tableName = safeTableName(tableName);
         DriverManagerDataSource dataSource = new DriverManagerDataSource(url, username, password);

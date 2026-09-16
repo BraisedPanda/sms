@@ -1,25 +1,27 @@
 spring:
   application:
-    name: dubbo-provider
+    name: ${SMS_STUDENT_APPLICATION_NAME}
   config:
-    import: optional:nacos:127.0.0.1:8848
+    import:
+      - optional:file:.env[.properties]
+      - optional:nacos:${SMS_NACOS_SERVER_ADDR}
   datasource:
-    url: jdbc:mysql://localhost:3306/sms_dev?useSSL=false&serverTimezone=Asia/Shanghai
-    username: root
-    password: 123456
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${SMS_STUDENT_DATASOURCE_URL}
+    username: ${SMS_STUDENT_DATASOURCE_USERNAME}
+    password: ${SMS_STUDENT_DATASOURCE_PASSWORD}
+    driver-class-name: ${SMS_STUDENT_DATASOURCE_DRIVER_CLASS_NAME}
 
 server:
-  port: 9092
+  port: ${SMS_STUDENT_SERVER_PORT}
 
 dubbo:
   application:
-    name: student-service-provider
+    name: ${SMS_STUDENT_DUBBO_APPLICATION_NAME}
   protocol:
     name: dubbo
-    port: 20880
+    port: ${SMS_STUDENT_DUBBO_PROTOCOL_PORT}
   registry:
-    address: nacos://127.0.0.1:8848
+    address: nacos://${SMS_NACOS_SERVER_ADDR}
   scan:
     base-packages: com.xqy.sms.student.provider.service # Dubbo服务接口实现类所在的包
 

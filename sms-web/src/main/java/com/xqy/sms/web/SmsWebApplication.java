@@ -2,8 +2,10 @@ package com.xqy.sms.web;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.mybatis.spring.annotation.MapperScan;
 
 @SpringBootApplication
+@MapperScan("com.xqy.sms.web.infrastructure.persistence.mapper")
 public class SmsWebApplication {
 
     public static void main(String[] args) {

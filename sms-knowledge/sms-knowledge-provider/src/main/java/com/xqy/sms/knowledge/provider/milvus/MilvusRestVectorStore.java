@@ -28,9 +28,9 @@ public class MilvusRestVectorStore implements MilvusVectorStore {
     private final String defaultCollection;
 
     public MilvusRestVectorStore(RestClient.Builder builder, ObjectMapper objectMapper,
-                                 @Value("${sms.knowledge.milvus.endpoint:}") String endpoint,
-                                 @Value("${sms.knowledge.milvus.token:}") String token,
-                                 @Value("${sms.knowledge.milvus.collection:ai_knowledge_chunk}") String defaultCollection) {
+                                 @Value("${sms.knowledge.milvus.endpoint}") String endpoint,
+                                 @Value("${sms.knowledge.milvus.token}") String token,
+                                 @Value("${sms.knowledge.milvus.collection}") String defaultCollection) {
         this.client = builder.build();
         this.objectMapper = objectMapper;
         this.endpoint = normalizeEndpoint(endpoint);

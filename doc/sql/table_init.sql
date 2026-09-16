@@ -329,3 +329,147 @@ CREATE TABLE IF NOT EXISTS ai_knowledge_chunk
 
 CREATE UNIQUE INDEX IF NOT EXISTS uk_ai_knowledge_chunk_document ON ai_knowledge_chunk
     ( knowledge_base_id, document_id, document_version_id, index_revision, chunk_no );
+-- System identity and authorization (RBAC)
+CREATE TABLE IF NOT EXISTS sys_user (
+    id BIGINT NOT NULL,
+    username VARCHAR(64) NOT NULL,
+    password VARCHAR(100) NOT NULL,
+    nickname VARCHAR(64) DEFAULT NULL,
+    real_name VARCHAR(64) DEFAULT NULL,
+    email VARCHAR(128) DEFAULT NULL,
+    phone VARCHAR(32) DEFAULT NULL,
+    avatar VARCHAR(512) DEFAULT NULL,
+    user_type VARCHAR(32) NOT NULL,
+    status VARCHAR(16) NOT NULL,
+    last_login_time DATETIME DEFAULT NULL,
+    last_login_ip VARCHAR(64) DEFAULT NULL,
+    sys_creator VARCHAR(64) DEFAULT NULL,
+    sys_modifier VARCHAR(64) DEFAULT NULL,
+    sys_create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    sys_update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_sys_user_username (username),
+    KEY idx_sys_user_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='System user';
+
+CREATE TABLE IF NOT EXISTS sys_role (
+    id BIGINT NOT NULL,
+    role_code VARCHAR(64) NOT NULL,
+    role_name VARCHAR(64) NOT NULL,
+    description VARCHAR(512) DEFAULT NULL,
+    role_type VARCHAR(32) NOT NULL,
+    status VARCHAR(16) NOT NULL,
+    sys_creator VARCHAR(64) DEFAULT NULL,
+    sys_modifier VARCHAR(64) DEFAULT NULL,
+    sys_create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    sys_update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_sys_role_code (role_code),
+    KEY idx_sys_role_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='System role';
+
+CREATE TABLE IF NOT EXISTS sys_user_role (
+    id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    role_id BIGINT NOT NULL,
+    sys_creator VARCHAR(64) DEFAULT NULL,
+    sys_modifier VARCHAR(64) DEFAULT NULL,
+    sys_create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    sys_update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_sys_user_role (user_id, role_id),
+    KEY idx_sys_user_role_role_id (role_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='User-role relationship';
+
+CREATE TABLE IF NOT EXISTS sys_menu (
+    id BIGINT NOT NULL,
+    parent_id BIGINT DEFAULT NULL,
+    path VARCHAR(256) DEFAULT NULL,
+    route_name VARCHAR(128) DEFAULT NULL,
+    component VARCHAR(256) DEFAULT NULL,
+    redirect VARCHAR(256) DEFAULT NULL,
+    title VARCHAR(128) NOT NULL,
+    icon VARCHAR(128) DEFAULT NULL,
+    sort_no INT NOT NULL DEFAULT 0,
+    keep_alive TINYINT(1) NOT NULL DEFAULT 0,
+    visible TINYINT(1) NOT NULL DEFAULT 1,
+    hide_tab TINYINT(1) NOT NULL DEFAULT 0,
+    full_page TINYINT(1) NOT NULL DEFAULT 0,
+    external_link VARCHAR(512) DEFAULT NULL,
+    iframe_flag TINYINT(1) NOT NULL DEFAULT 0,
+    active_path VARCHAR(256) DEFAULT NULL,
+    status VARCHAR(16) NOT NULL,
+    sys_creator VARCHAR(64) DEFAULT NULL,
+    sys_modifier VARCHAR(64) DEFAULT NULL,
+    sys_create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    sys_update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_sys_menu_parent_id (parent_id),
+    KEY idx_sys_menu_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='System menu';
+
+CREATE TABLE IF NOT EXISTS sys_role_menu (
+    id BIGINT NOT NULL,
+    role_id BIGINT NOT NULL,
+    menu_id BIGINT NOT NULL,
+    sys_creator VARCHAR(64) DEFAULT NULL,
+    sys_modifier VARCHAR(64) DEFAULT NULL,
+    sys_create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    sys_update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_sys_role_menu (role_id, menu_id),
+    KEY idx_sys_role_menu_menu_id (menu_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Role-menu relationship';
+
+CREATE TABLE IF NOT EXISTS sys_button (
+    id BIGINT NOT NULL,
+    menu_id BIGINT NOT NULL,
+    button_name VARCHAR(64) NOT NULL,
+    auth_remark VARCHAR(128) NOT NULL,
+    description VARCHAR(512) DEFAULT NULL,
+    sort_no INT NOT NULL DEFAULT 0,
+    status VARCHAR(16) NOT NULL,
+    sys_creator VARCHAR(64) DEFAULT NULL,
+    sys_modifier VARCHAR(64) DEFAULT NULL,
+    sys_create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    sys_update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_sys_button_auth_remark (auth_remark),
+    KEY idx_sys_button_menu_id (menu_id),
+    KEY idx_sys_button_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='System button permission';
+
+CREATE TABLE IF NOT EXISTS sys_role_button (
+    id BIGINT NOT NULL,
+    role_id BIGINT NOT NULL,
+    button_id BIGINT NOT NULL,
+    sys_creator VARCHAR(64) DEFAULT NULL,
+    sys_modifier VARCHAR(64) DEFAULT NULL,
+    sys_create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    sys_update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_sys_role_button (role_id, button_id),
+    KEY idx_sys_role_button_button_id (button_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Role-button relationship';
+
+CREATE TABLE IF NOT EXISTS sys_user_session (
+    id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    access_token TEXT NOT NULL,
+    refresh_token TEXT NOT NULL,
+    login_ip VARCHAR(64) DEFAULT NULL,
+    user_agent VARCHAR(1024) DEFAULT NULL,
+    device_type VARCHAR(32) NOT NULL,
+    login_time DATETIME NOT NULL,
+    expire_time DATETIME NOT NULL,
+    refresh_expire_time DATETIME NOT NULL,
+    status VARCHAR(16) NOT NULL,
+    logout_time DATETIME DEFAULT NULL,
+    sys_creator VARCHAR(64) DEFAULT NULL,
+    sys_modifier VARCHAR(64) DEFAULT NULL,
+    sys_create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    sys_update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_sys_user_session_user_id (user_id),
+    KEY idx_sys_user_session_status_expire (status, expire_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='User login session';
