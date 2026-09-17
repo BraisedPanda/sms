@@ -5,12 +5,13 @@ import java.util.List;
 import java.util.Objects;
 
 /** Identity and authorization claims carried by a verified JWT. */
-public record JwtUserContext(Long userId, Long sessionId, String tenantId, List<String> roles,
+public record JwtUserContext(Long userId, Long sessionId, String tokenId, String tenantId, List<String> roles,
                              List<String> authorities, List<String> dataScopes, String tokenType) {
 
     public JwtUserContext {
         Objects.requireNonNull(userId, "userId must not be null");
         Objects.requireNonNull(sessionId, "sessionId must not be null");
+        Objects.requireNonNull(tokenId, "tokenId must not be null");
         roles = immutableStrings(roles);
         authorities = immutableStrings(authorities);
         dataScopes = immutableStrings(dataScopes);

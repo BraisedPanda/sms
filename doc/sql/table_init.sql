@@ -457,6 +457,8 @@ CREATE TABLE IF NOT EXISTS sys_user_session (
     user_id BIGINT NOT NULL,
     access_token TEXT NOT NULL,
     refresh_token TEXT NOT NULL,
+    access_jti VARCHAR(64) DEFAULT NULL,
+    refresh_jti VARCHAR(64) DEFAULT NULL,
     login_ip VARCHAR(64) DEFAULT NULL,
     user_agent VARCHAR(1024) DEFAULT NULL,
     device_type VARCHAR(32) NOT NULL,

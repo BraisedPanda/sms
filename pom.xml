@@ -31,6 +31,7 @@
         <module>sms-common-persistent</module>
         <module>sms-ai</module>
         <module>sms-web</module>
+        <module>sms-system</module>
         <module>sms-student</module>
         <module>sms-knowledge</module>
     </modules>
@@ -68,7 +69,12 @@
             </dependency>
             <dependency>
                 <groupId>com.xqy</groupId>
-                <artifactId>sms-ai</artifactId>
+                <artifactId>sms-ai-provider</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xqy</groupId>
+                <artifactId>sms-ai-api</artifactId>
                 <version>${revision}</version>
             </dependency>
             <dependency>
@@ -89,6 +95,16 @@
             <dependency>
                 <groupId>com.xqy</groupId>
                 <artifactId>sms-student-provider</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xqy</groupId>
+                <artifactId>sms-system-api</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xqy</groupId>
+                <artifactId>sms-system-provider</artifactId>
                 <version>${revision}</version>
             </dependency>
             <dependency>

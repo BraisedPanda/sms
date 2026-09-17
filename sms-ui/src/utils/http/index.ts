@@ -36,6 +36,8 @@ let unauthorizedTimer: NodeJS.Timeout | null = null
 interface ExtendedAxiosRequestConfig extends AxiosRequestConfig {
   showErrorMessage?: boolean
   showSuccessMessage?: boolean
+  skipAuthRefresh?: boolean
+  _retried?: boolean
 }
 
 const { VITE_API_URL, VITE_WITH_CREDENTIALS } = import.meta.env
@@ -43,7 +45,7 @@ const { VITE_API_URL, VITE_WITH_CREDENTIALS } = import.meta.env
 /** Axios实例 */
 const axiosInstance = axios.create({
   timeout: REQUEST_TIMEOUT,
-  baseURL: VITE_API_URL,
+  baseURL: VITE_API_URL || '/',
   withCredentials: VITE_WITH_CREDENTIALS === 'true',
   validateStatus: (status) => status >= 200 && status < 300,
   transformResponse: [
@@ -65,7 +67,7 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   (request: InternalAxiosRequestConfig) => {
     const { accessToken } = useUserStore()
-    if (accessToken) request.headers.set('Authorization', accessToken)
+    if (accessToken) request.headers.set('Authorization', `Bearer ${accessToken}`)
 
     if (request.data && !(request.data instanceof FormData) && !request.headers['Content-Type']) {
       request.headers.set('Content-Type', 'application/json')
@@ -82,18 +84,40 @@ axiosInstance.interceptors.request.use(
 
 /** 响应拦截器 */
 axiosInstance.interceptors.response.use(
-  (response: AxiosResponse<BaseResponse>) => {
+  async (response: AxiosResponse<BaseResponse>) => {
     const { code, msg } = response.data
     // 后端业务成功码为 0，兼容现有使用 HTTP 风格 200 的接口
     if (code === 0 || code === ApiStatus.success) return response
-    if (code === ApiStatus.unauthorized) handleUnauthorizedError(msg)
+    if (code === ApiStatus.unauthorized) return refreshAndRetry(response.config as ExtendedAxiosRequestConfig, msg)
     throw createHttpError(msg || $t('httpMsg.requestFailed'), code)
   },
-  (error) => {
-    if (error.response?.status === ApiStatus.unauthorized) handleUnauthorizedError()
+  async (error) => {
+    if (error.response?.status === ApiStatus.unauthorized) return refreshAndRetry(error.config as ExtendedAxiosRequestConfig)
     return Promise.reject(handleError(error))
   }
 )
+
+let refreshPromise: Promise<void> | null = null
+
+async function refreshAndRetry(config: ExtendedAxiosRequestConfig, message?: string): Promise<AxiosResponse<BaseResponse>> {
+  if (config.skipAuthRefresh || config._retried || !useUserStore().refreshToken) return handleUnauthorizedError(message)
+  config._retried = true
+  try {
+    if (!refreshPromise) {
+      refreshPromise = axiosInstance
+        .post<BaseResponse<Api.Auth.LoginResponse>>('/api/auth/refresh', { refreshToken: useUserStore().refreshToken }, { skipAuthRefresh: true } as ExtendedAxiosRequestConfig)
+        .then((response) => {
+          if (response.data.code !== 0 && response.data.code !== ApiStatus.success) throw new Error(response.data.msg)
+          useUserStore().setToken(response.data.data.token, response.data.data.refreshToken)
+        })
+        .finally(() => { refreshPromise = null })
+    }
+    await refreshPromise
+    return axiosInstance.request<BaseResponse>(config)
+  } catch {
+    return handleUnauthorizedError(message)
+  }
+}
 
 /** 统一创建HttpError */
 function createHttpError(message: string, code: number) {

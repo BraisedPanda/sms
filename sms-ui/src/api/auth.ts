@@ -27,3 +27,16 @@ export function fetchGetUserInfo() {
     // }
   })
 }
+
+export function fetchLogout(accessToken?: string) {
+  return request.post<void>({
+    url: '/api/auth/logout',
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+    showErrorMessage: false,
+    skipAuthRefresh: true
+  })
+}
+
+export function fetchRefresh(refreshToken: string) {
+  return request.post<Api.Auth.LoginResponse>({ url: '/api/auth/refresh', params: { refreshToken } })
+}

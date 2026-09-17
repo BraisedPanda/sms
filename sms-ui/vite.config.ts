@@ -14,7 +14,11 @@ import tailwindcss from '@tailwindcss/vite'
 export default ({ mode }: { mode: string }) => {
   const root = process.cwd()
   const env = loadEnv(mode, root)
-  const { VITE_VERSION, VITE_PORT, VITE_BASE_URL, VITE_API_URL, VITE_API_PROXY_URL } = env
+  const VITE_VERSION = env.VITE_VERSION || '3.0.2'
+  const VITE_PORT = env.VITE_PORT || '3006'
+  const VITE_BASE_URL = env.VITE_BASE_URL || '/'
+  const VITE_API_URL = env.VITE_API_URL || '/'
+  const VITE_API_PROXY_URL = env.VITE_API_PROXY_URL || 'http://localhost:9090'
 
   console.log(`🚀 API_URL = ${VITE_API_URL}`)
   console.log(`🚀 VERSION = ${VITE_VERSION}`)

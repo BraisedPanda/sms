@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: ${AI_APPLICATION_NAME:sms-ai-provider}
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:nacos:${NACOS_SERVER_ADDR:127.0.0.1:8848}
+  datasource:
+    url: ${AI_DATASOURCE_URL:jdbc:mysql://localhost:3306/sms_dev?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8}
+    username: ${AI_DATASOURCE_USERNAME:root}
+    password: ${AI_DATASOURCE_PASSWORD:}
+    driver-class-name: ${AI_DATASOURCE_DRIVER_CLASS_NAME:com.mysql.cj.jdbc.Driver}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+dubbo:
+  application:
+    name: ${AI_DUBBO_APPLICATION_NAME:sms-ai-provider}
+  registry:
+    address: nacos://${NACOS_SERVER_ADDR:127.0.0.1:8848}
+
+server:
+  port: ${AI_SERVER_PORT:9091}
+
+sms:
+  ai:
+    embedding:
+      endpoint: ${EMBEDDING_ENDPOINT}
+      token: ${EMBEDDING_TOKEN}
+      model: ${EMBEDDING_MODEL:text-embedding-3-small}
+      dimensions: ${EMBEDDING_DIMENSIONS:1536}
+    knowledge-ingestion:
+      default-limit: ${AI_KNOWLEDGE_INGESTION_DEFAULT_LIMIT:1000}
+      max-limit: ${AI_KNOWLEDGE_INGESTION_MAX_LIMIT:10000}
+      default-index-revision: ${AI_KNOWLEDGE_INGESTION_DEFAULT_INDEX_REVISION:1}
+      postgres:
+        url: ${KNOWLEDGE_POSTGRES_URL}
+        username: ${KNOWLEDGE_POSTGRES_USERNAME}
+        password: ${KNOWLEDGE_POSTGRES_PASSWORD}
+        table: ${KNOWLEDGE_POSTGRES_TABLE:ai_knowledge_chunk}
+    workflow:
+      core-pool-size: ${AI_WORKFLOW_CORE_POOL_SIZE:4}
+      max-pool-size: ${AI_WORKFLOW_MAX_POOL_SIZE:8}
+      queue-capacity: ${AI_WORKFLOW_QUEUE_CAPACITY:100}
+      max-attempts: ${AI_WORKFLOW_MAX_ATTEMPTS:3}
+      step-timeout-ms: ${AI_WORKFLOW_STEP_TIMEOUT_MS:30000}
+      business-result-ttl-minutes: ${AI_WORKFLOW_BUSINESS_RESULT_TTL_MINUTES:30}
+    task-recovery-delay-ms: ${AI_TASK_RECOVERY_DELAY_MS:10000}
+    sse-emitter-timeout-millis: ${AI_SSE_EMITTER_TIMEOUT_MILLIS:120000}
+    chat-memory-max-messages: ${AI_CHAT_MEMORY_MAX_MESSAGES:40}

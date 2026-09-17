@@ -62,7 +62,7 @@
   const { keepAliveExclude } = storeToRefs(useWorktabStore())
 
   const isRefresh = shallowRef(true)
-  const isOpenRouteInfo = import.meta.env.VITE_OPEN_ROUTE_INFO
+  const isOpenRouteInfo = import.meta.env.VITE_OPEN_ROUTE_INFO || 'false'
   const showTransitionMask = ref(false)
 
   // 标记是否是首次加载（浏览器刷新）

@@ -10,6 +10,8 @@ public class SysUserSession extends BaseEntity {
     @TableField("user_id") private Long userId;
     private String accessToken;
     private String refreshToken;
+    @TableField("access_jti") private String accessJti;
+    @TableField("refresh_jti") private String refreshJti;
     private String loginIp;
     private String userAgent;
     private String deviceType;
@@ -24,6 +26,10 @@ public class SysUserSession extends BaseEntity {
     public void setAccessToken(String accessToken) { this.accessToken = accessToken; }
     public String getRefreshToken() { return refreshToken; }
     public void setRefreshToken(String refreshToken) { this.refreshToken = refreshToken; }
+    public String getAccessJti() { return accessJti; }
+    public void setAccessJti(String accessJti) { this.accessJti = accessJti; }
+    public String getRefreshJti() { return refreshJti; }
+    public void setRefreshJti(String refreshJti) { this.refreshJti = refreshJti; }
     public String getLoginIp() { return loginIp; }
     public void setLoginIp(String loginIp) { this.loginIp = loginIp; }
     public String getUserAgent() { return userAgent; }

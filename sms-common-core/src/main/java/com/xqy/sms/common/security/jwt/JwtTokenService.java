@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 /** Framework-neutral JWT signing and verification service shared by application modules. */
 public final class JwtTokenService {
@@ -16,7 +17,8 @@ public final class JwtTokenService {
     public static final String REFRESH_TOKEN = "refresh";
 
     private static final String SESSION_ID_CLAIM = "sid";
-    private static final String TOKEN_TYPE_CLAIM = "type";
+    private static final String TOKEN_TYPE_CLAIM = "typ";
+    private static final String TOKEN_ID_CLAIM = "jti";
     private static final String TENANT_ID_CLAIM = "tenant_id";
     private static final String ROLES_CLAIM = "roles";
     private static final String AUTHORITIES_CLAIM = "authorities";
@@ -52,6 +54,7 @@ public final class JwtTokenService {
         DecodedJWT jwt = verifier.verify(token);
         return new JwtUserContext(requiredLong(jwt.getSubject(), "sub"),
                 requiredLong(jwt.getClaim(SESSION_ID_CLAIM).asLong(), SESSION_ID_CLAIM),
+                requiredString(jwt.getId(), TOKEN_ID_CLAIM),
                 jwt.getClaim(TENANT_ID_CLAIM).asString(),
                 strings(jwt.getClaim(ROLES_CLAIM).asList(String.class)),
                 strings(jwt.getClaim(AUTHORITIES_CLAIM).asList(String.class)),
@@ -81,6 +84,7 @@ public final class JwtTokenService {
         return JWT.create()
                 .withSubject(String.valueOf(context.userId()))
                 .withClaim(SESSION_ID_CLAIM, context.sessionId())
+                .withJWTId(UUID.randomUUID().toString())
                 .withClaim(TOKEN_TYPE_CLAIM, tokenType)
                 .withClaim(TENANT_ID_CLAIM, context.tenantId())
                 .withArrayClaim(ROLES_CLAIM, context.roles().toArray(String[]::new))
@@ -102,6 +106,13 @@ public final class JwtTokenService {
 
     private long requiredLong(Long value, String claimName) {
         if (value == null) throw new IllegalArgumentException("JWT claim " + claimName + " must be a number");
+        return value;
+    }
+
+    private String requiredString(String value, String claimName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("JWT claim " + claimName + " must not be blank");
+        }
         return value;
     }
 

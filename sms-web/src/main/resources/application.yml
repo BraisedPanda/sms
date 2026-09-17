@@ -1,20 +1,31 @@
 spring:
   application:
-    name: ${WEB_APPLICATION_NAME}
+    name: ${WEB_APPLICATION_NAME:sms-web}
   config:
     import: optional:file:.env[.properties]
   datasource:
-    url: ${WEB_DATASOURCE_URL}
-    username: ${WEB_DATASOURCE_USERNAME}
-    password: ${WEB_DATASOURCE_PASSWORD}
-    driver-class-name: ${WEB_DATASOURCE_DRIVER_CLASS_NAME}
+    url: ${WEB_DATASOURCE_URL:jdbc:mysql://localhost:3306/sms_dev?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8}
+    username: ${WEB_DATASOURCE_USERNAME:root}
+    password: ${WEB_DATASOURCE_PASSWORD:}
+    driver-class-name: ${WEB_DATASOURCE_DRIVER_CLASS_NAME:com.mysql.cj.jdbc.Driver}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
 
 server:
-  port: ${WEB_SERVER_PORT}
+  port: ${WEB_SERVER_PORT:9090}
 
 sms:
   web:
     jwt:
       secret: ${JWT_SECRET}
-      access-token-ttl-seconds: ${JWT_ACCESS_TOKEN_TTL_SECONDS}
-      refresh-token-ttl-seconds: ${JWT_REFRESH_TOKEN_TTL_SECONDS}
+      access-token-ttl-seconds: ${JWT_ACCESS_TOKEN_TTL_SECONDS:7200}
+      refresh-token-ttl-seconds: ${JWT_REFRESH_TOKEN_TTL_SECONDS:604800}
+
+dubbo:
+  application:
+    name: ${WEB_DUBBO_APPLICATION_NAME:sms-web-bff}
+  registry:
+    address: nacos://${NACOS_SERVER_ADDR:127.0.0.1:8848}

@@ -2,6 +2,25 @@
 
 本文档记录 SMS 项目的重要变更。
 
+## 2026-09-17
+
+### 新增
+
+- 新增 `sms-system-api` 与 `sms-system-provider`，将登录、会话、用户、角色、菜单和按钮权限能力下沉为 Dubbo 系统服务；`sms-web` 作为 BFF 调用该服务。
+- JWT 统一携带并校验 `sub`、`sid`、`jti`、`typ` 与 `exp`；系统服务以 MySQL 保存会话审计，以 Redis 保存在线会话和令牌吊销索引，支持刷新令牌轮换、退出、踢下线和定时清理。
+- 新增 `sms-ai-api` 和 `sms-ai-provider` 模块边界；聊天、取消和知识入库均由 Web 鉴权后经 Dubbo 提交，Provider 将聊天事件写入 Redis Stream，Web 转发为 SSE。
+- 新增会话 JTI 数据库迁移 `doc/sql/2026-09-17_session_jti.sql`。
+- 新增可重复执行的系统管理员、RBAC 和系统/用户/菜单路由初始化脚本 `doc/sql/system_data_init.sql`。
+
+### 调整
+
+- `.env` 收敛为密钥、凭据和环境地址；稳定默认值回归服务 YAML，均支持 `${ENV:default}` 覆盖。
+- 登录页移除预设账号/角色选择和拖动验证；请求统一使用 `Bearer` 令牌，401 时自动使用刷新令牌重试，并在成功后恢复目标路由。
+- 前端退出时固定携带退出前的 Access Token，并跳过刷新重试，确保后端能够完成会话吊销。
+- 系统管理的用户列表和后端菜单数据接入 `sms-web` API。
+- 移除 AI Provider 的 REST Controller 与独立 JWT/Security 过滤链，外部认证、用户上下文和权限判断统一收口到 Web BFF。
+- 刷新、退出、踢下线和过期清理对会话行加锁，避免并发刷新签发多组令牌；禁用用户不再获得新令牌。
+
 ## 2026-09-16
 
 ### 新增
@@ -33,4 +52,3 @@
 - 移除 `sms-ai` 中的临时内存认证 Controller。
 - 移除前端按环境拆分的配置文件，统一使用 `.env`。
 - 移除 `sms-web` 对 JJWT 的依赖及模块内重复 JWT 服务实现。
-
