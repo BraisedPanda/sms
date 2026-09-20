@@ -7,6 +7,7 @@ import java.util.Map;
 
 /** Vector record stored in Milvus; its metadata is denormalized for filtering. */
 public class AiknowledgeChunk extends BaseEntity implements Serializable {
+    private String tenantId;
     private Long knowledgeBaseId;
     private Long documentId;
     private String documentNo;
@@ -19,6 +20,8 @@ public class AiknowledgeChunk extends BaseEntity implements Serializable {
     private String status;
     private Double score;
     public Long getKnowledgeBaseId() { return knowledgeBaseId; }
+    public String getTenantId() { return tenantId; }
+    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
     public void setKnowledgeBaseId(Long knowledgeBaseId) { this.knowledgeBaseId = knowledgeBaseId; }
     public Long getDocumentId() { return documentId; }
     public void setDocumentId(Long documentId) { this.documentId = documentId; }

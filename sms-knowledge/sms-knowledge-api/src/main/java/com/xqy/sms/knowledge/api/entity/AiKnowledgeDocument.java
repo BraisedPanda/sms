@@ -8,6 +8,7 @@ import java.io.Serializable;
 
 @TableName("ai_knowledge_document")
 public class AiKnowledgeDocument extends BaseEntity implements Serializable {
+    @TableField("tenant_id") private String tenantId;
     @TableField("knowledge_base_id")
     private Long knowledgeBaseId;
     @TableField("document_no")
@@ -23,6 +24,8 @@ public class AiKnowledgeDocument extends BaseEntity implements Serializable {
     public Long getKnowledgeBaseId() {
         return knowledgeBaseId;
     }
+    public String getTenantId() { return tenantId; }
+    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
 
     public void setKnowledgeBaseId(Long knowledgeBaseId) {
         this.knowledgeBaseId = knowledgeBaseId;

@@ -7,32 +7,33 @@ import com.xqy.sms.knowledge.api.entity.AiKnowledgeIngestionJob;
 import com.xqy.sms.knowledge.api.entity.AiknowledgeChunk;
 import com.xqy.sms.knowledge.api.model.KnowledgeVectorQuery;
 import org.springframework.stereotype.Service;
+import com.xqy.sms.common.security.rpc.InternalCallContext;
 
 import java.util.List;
 
 @Service
 public interface KnowledgeService {
-    boolean saveKnowledgeBase(AiKnowledgeBase value);
-    boolean updateKnowledgeBase(AiKnowledgeBase value);
-    boolean deleteKnowledgeBase(Long id);
-    AiKnowledgeBase getKnowledgeBaseById(Long id);
-    List<AiKnowledgeBase> listKnowledgeBases();
+    boolean saveKnowledgeBase(AiKnowledgeBase value, InternalCallContext context);
+    boolean updateKnowledgeBase(AiKnowledgeBase value, InternalCallContext context);
+    boolean deleteKnowledgeBase(Long id, InternalCallContext context);
+    AiKnowledgeBase getKnowledgeBaseById(Long id, InternalCallContext context);
+    List<AiKnowledgeBase> listKnowledgeBases(InternalCallContext context);
 
-    boolean saveDocument(AiKnowledgeDocument value);
-    boolean updateDocument(AiKnowledgeDocument value);
-    boolean deleteDocument(Long id);
-    AiKnowledgeDocument getDocumentById(Long id);
-    List<AiKnowledgeDocument> listDocuments(Long knowledgeBaseId);
+    boolean saveDocument(AiKnowledgeDocument value, InternalCallContext context);
+    boolean updateDocument(AiKnowledgeDocument value, InternalCallContext context);
+    boolean deleteDocument(Long id, InternalCallContext context);
+    AiKnowledgeDocument getDocumentById(Long id, InternalCallContext context);
+    List<AiKnowledgeDocument> listDocuments(Long knowledgeBaseId, InternalCallContext context);
 
-    boolean saveDocumentVersion(AiKnowledgeDocumentVersion value);
-    boolean updateDocumentVersion(AiKnowledgeDocumentVersion value);
-    AiKnowledgeDocumentVersion getDocumentVersionById(Long id);
-    List<AiKnowledgeDocumentVersion> listDocumentVersions(Long documentId);
+    boolean saveDocumentVersion(AiKnowledgeDocumentVersion value, InternalCallContext context);
+    boolean updateDocumentVersion(AiKnowledgeDocumentVersion value, InternalCallContext context);
+    AiKnowledgeDocumentVersion getDocumentVersionById(Long id, InternalCallContext context);
+    List<AiKnowledgeDocumentVersion> listDocumentVersions(Long documentId, InternalCallContext context);
 
-    boolean saveIngestionJob(AiKnowledgeIngestionJob value);
-    boolean updateIngestionJob(AiKnowledgeIngestionJob value);
-    AiKnowledgeIngestionJob getIngestionJobById(Long id);
-    List<AiKnowledgeIngestionJob> listIngestionJobs(Long documentVersionId);
+    boolean saveIngestionJob(AiKnowledgeIngestionJob value, InternalCallContext context);
+    boolean updateIngestionJob(AiKnowledgeIngestionJob value, InternalCallContext context);
+    AiKnowledgeIngestionJob getIngestionJobById(Long id, InternalCallContext context);
+    List<AiKnowledgeIngestionJob> listIngestionJobs(Long documentVersionId, InternalCallContext context);
 
     /** Performs a top-K vector search in the active Milvus index. */
     List<AiknowledgeChunk> queryVector(KnowledgeVectorQuery query);

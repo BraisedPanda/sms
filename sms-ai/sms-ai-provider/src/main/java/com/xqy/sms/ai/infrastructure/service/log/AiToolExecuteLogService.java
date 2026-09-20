@@ -5,6 +5,7 @@ import com.xqy.sms.ai.infrastructure.persistence.mapper.AiToolExecuteLogMapper;
 import com.xqy.sms.ai.domain.model.AiTask;
 import com.xqy.sms.ai.domain.model.AiTaskResult;
 import com.xqy.sms.common.entity.AiToolExecuteLog;
+import com.xqy.sms.ai.infrastructure.security.AiSafetyPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -28,9 +29,10 @@ public class AiToolExecuteLogService {
         AiToolExecuteLog record = new AiToolExecuteLog();
         record.setToolExecuteId(UUID.randomUUID().toString());
         record.setRequestId(task == null ? null : task.getRequestId());
+        record.setTenantId(task == null ? null : task.getTenantId());
         record.setDomain(task == null ? null : task.getDomain());
         record.setToolName(task == null ? null : task.getToolName());
-        record.setQuestion(task == null ? null : task.getSubQuestion());
+        record.setQuestion(task == null ? null : AiSafetyPolicy.redact(task.getSubQuestion()));
         record.setModelName(modelName);
         record.setStartTime(LocalDateTime.now());
         record.setSuccess(false);
@@ -64,7 +66,7 @@ public class AiToolExecuteLogService {
             record.setSuccess(success);
             record.setResultCount(resultCount);
             record.setErrorCode(errorCode);
-            record.setErrorMessage(errorMessage);
+            record.setErrorMessage(AiSafetyPolicy.redact(errorMessage));
             mapper.updateById(record);
             log.info("requestId={} toolExecuteId={} domain={} tool={} finished success={} durationMs={}",
                     record.getRequestId(), toolExecuteId, record.getDomain(), record.getToolName(),

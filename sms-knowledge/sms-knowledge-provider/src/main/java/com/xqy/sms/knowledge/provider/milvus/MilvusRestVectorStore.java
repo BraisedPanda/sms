@@ -26,22 +26,29 @@ public class MilvusRestVectorStore implements MilvusVectorStore {
     private final String endpoint;
     private final String token;
     private final String defaultCollection;
+    private final int embeddingDimensions;
 
     public MilvusRestVectorStore(RestClient.Builder builder, ObjectMapper objectMapper,
                                  @Value("${sms.knowledge.milvus.endpoint}") String endpoint,
                                  @Value("${sms.knowledge.milvus.token}") String token,
-                                 @Value("${sms.knowledge.milvus.collection}") String defaultCollection) {
+                                 @Value("${sms.knowledge.milvus.collection}") String defaultCollection,
+                                 @Value("${sms.knowledge.embedding-dimensions}") int embeddingDimensions) {
         this.client = builder.build();
         this.objectMapper = objectMapper;
         this.endpoint = normalizeEndpoint(endpoint);
         this.token = token == null ? "" : token.trim();
         this.defaultCollection = defaultCollection;
+        if (embeddingDimensions <= 0) throw new IllegalArgumentException("embeddingDimensions must be positive");
+        this.embeddingDimensions = embeddingDimensions;
     }
 
     @Override
     public List<AiknowledgeChunk> search(KnowledgeVectorQuery query) {
         if (query == null || query.getEmbedding() == null || query.getEmbedding().isEmpty() || endpoint.isBlank()) {
             return Collections.emptyList();
+        }
+        if (query.getEmbedding().size() != embeddingDimensions) {
+            throw new IllegalArgumentException("Embedding dimension must be " + embeddingDimensions);
         }
         ObjectNode body = objectMapper.createObjectNode();
         body.put("collectionName", query.getCollectionName() == null || query.getCollectionName().isBlank()
@@ -70,6 +77,7 @@ public class MilvusRestVectorStore implements MilvusVectorStore {
             for (JsonNode item : data) {
                 JsonNode fields = item.has("entity") && item.get("entity").isObject() ? item.get("entity") : item;
                 AiknowledgeChunk chunk = new AiknowledgeChunk();
+                chunk.setTenantId(textValue(fields, "tenantId", "tenant_id"));
                 chunk.setKnowledgeBaseId(longValue(fields, "knowledgeBaseId", "knowledge_base_id"));
                 chunk.setDocumentId(longValue(fields, "documentId", "document_id"));
                 chunk.setDocumentNo(textValue(fields, "documentNo", "document_no"));
@@ -94,6 +102,8 @@ public class MilvusRestVectorStore implements MilvusVectorStore {
 
     private String buildFilter(KnowledgeVectorQuery query) {
         List<String> expressions = new ArrayList<>();
+        if (query.getTenantId() == null || query.getTenantId().isBlank()) return "tenantId == '__denied__'";
+        expressions.add("tenantId == " + quote(query.getTenantId()));
         if (query.getKnowledgeBaseId() != null) expressions.add("knowledgeBaseId == " + query.getKnowledgeBaseId());
         expressions.add("status == 'ACTIVE'");
         Map<String, Object> filter = query.getFilter();

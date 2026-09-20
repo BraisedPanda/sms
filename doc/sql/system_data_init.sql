@@ -1,6 +1,6 @@
 -- Development bootstrap account: Admin / 123456. Change the password after first login.
-INSERT INTO sys_user (id, username, password, nickname, user_type, status)
-VALUES (1001, 'Admin', '$2a$10$OrVJdplQkNAnLWHiLKPxFeRZe95TFQ/ejKVBP0CVb2YivBwohC1SG', '系统管理员', 'SYSTEM', 'ENABLED')
+INSERT INTO sys_user (id, tenant_id, username, password, nickname, user_type, status)
+VALUES (1001, 'default', 'Admin', '$2a$10$OrVJdplQkNAnLWHiLKPxFeRZe95TFQ/ejKVBP0CVb2YivBwohC1SG', '系统管理员', 'SYSTEM', 'ENABLED')
 ON DUPLICATE KEY UPDATE nickname = VALUES(nickname), status = VALUES(status);
 
 INSERT INTO sys_role (id, role_code, role_name, description, role_type, status)

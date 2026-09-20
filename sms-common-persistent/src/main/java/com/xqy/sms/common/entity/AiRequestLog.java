@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 @TableName("ai_request_log")
 public class AiRequestLog extends BaseEntity {
 
+    private String tenantId;
     private String requestId;
     private String userId;
     private String sessionId;
@@ -25,6 +26,8 @@ public class AiRequestLog extends BaseEntity {
     private String errorMessage;
 
     public String getRequestId() { return requestId; }
+    public String getTenantId() { return tenantId; }
+    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
     public void setRequestId(String requestId) { this.requestId = requestId; }
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }

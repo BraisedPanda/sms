@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 
 @TableName("ai_knowledge_ingestion_job")
 public class AiKnowledgeIngestionJob extends BaseEntity implements Serializable {
+    @TableField("tenant_id") private String tenantId;
     @TableField("document_version_id") private Long documentVersionId;
     @TableField("index_revision") private String indexRevision;
     @TableField("job_type") private String jobType;
@@ -18,6 +19,8 @@ public class AiKnowledgeIngestionJob extends BaseEntity implements Serializable 
     @TableField("start_time") private LocalDateTime startTime;
     @TableField("finish_time") private LocalDateTime finishTime;
     public Long getDocumentVersionId() { return documentVersionId; }
+    public String getTenantId() { return tenantId; }
+    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
     public void setDocumentVersionId(Long documentVersionId) { this.documentVersionId = documentVersionId; }
     public String getIndexRevision() { return indexRevision; }
     public void setIndexRevision(String indexRevision) { this.indexRevision = indexRevision; }

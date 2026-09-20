@@ -2,6 +2,36 @@
 
 本文档记录 SMS 项目的重要变更。
 
+## 2026-09-20
+
+### 新增
+
+- 新增带过期时间和调用方校验的 HMAC 内部 RPC 上下文，Web -> AI -> Knowledge 调用链携带可信租户、用户、会话和请求标识，并记录结构化 `rpc_audit` 日志。
+- 新增 `GET /api/ai/runs/{runId}` 安全投影接口，以及聊天、取消、run 查询、知识入库的边界测试和 `400/403/404` 错误契约。
+- 新增 MySQL 租户迁移、pgvector 1536 维重建脚本和内部 RPC 网络隔离部署说明。
+- 新增工具输入范围校验、结果字段白名单、敏感信息脱敏、长度限制、Prompt 不可信数据分隔和 SSE `sources` 来源事件。
+
+### 调整
+
+- 共享 `BaseEntity` 审计属性由 `sysCreator/sysModifier/sysCreateTime/sysUpdateTime` 统一为 `createBy/modifyBy/createTime/updateTime`，MyBatis 映射及 MySQL/pgvector SQL 列同步改为 `create_by/modify_by/create_time/update_time`；新增现有 MySQL、PostgreSQL 数据库的幂等列重命名脚本。
+- 用户与会话租户贯穿登录、刷新、JWT、Web principal、run、知识库、工具日志和向量检索；run 幂等键及知识库唯一索引改为租户联合唯一。
+- 知识库 CRUD 和向量查询要求签名调用上下文并强制租户条件；入库 SQL 同时校验知识库、文档详情和版本的租户一致性。
+- pgvector、Milvus 和 embedding 配置统一为 1536 维，并在查询/入库前执行维度校验；检索来源只回传受控字段。
+- MySQL `sms_dev` 已执行基础 DDL、租户迁移和 RBAC 初始化，重复执行验证通过；Admin 使用 BCrypt 哈希且用户、角色、菜单、按钮均为 `ENABLED`。
+
+### 未完成的外部验收
+
+- PostgreSQL `localhost:5432` 未启动，未执行 pgvector 迁移和真实文档入库。
+- 当前 embedding 上游不支持默认模型，模型列表也未提供 embedding 候选，真实重复导入、召回质量与来源端到端验收待模型服务就绪。
+
+## 2026-09-18
+
+### 调整
+
+- 移除 `sms-web` 中遗留的本地 Mapper、MyBatis/JDBC/MySQL 依赖及数据源配置；Web BFF 不再直接访问数据库。
+- 移除 `sms-ai-provider` 对 Spring Web 与 `SseEmitter` 的依赖。AI 编排和聊天服务改为通过事件发布端口写入 Redis Stream，Web 保留为 Redis Stream 到 SSE 的唯一 HTTP 适配层。
+- 为已完成的幂等任务补发终态事件，确保 Web SSE 中继能够正常结束连接。
+
 ## 2026-09-17
 
 ### 新增

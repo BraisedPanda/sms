@@ -6,7 +6,7 @@ import java.util.List;
 public final class SystemAuthModels {
     private SystemAuthModels() { }
     public record TokenPair(String token, String refreshToken) implements Serializable { }
-    public record Principal(Long userId, Long sessionId, String tokenId, List<String> roles,
+    public record Principal(Long userId, Long sessionId, String tokenId, String tenantId, List<String> roles,
                             List<String> authorities) implements Serializable { }
     public record UserInfo(List<String> buttons, List<String> roles, Long userId, String userName,
                            String email, String avatar) implements Serializable { }

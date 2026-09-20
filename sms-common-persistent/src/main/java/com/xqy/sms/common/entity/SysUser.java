@@ -7,6 +7,8 @@ import java.time.LocalDateTime;
 
 @TableName("sys_user")
 public class SysUser extends BaseEntity {
+    @TableField("tenant_id")
+    private String tenantId;
     private String username;
     private String password;
     private String nickname;
@@ -20,6 +22,8 @@ public class SysUser extends BaseEntity {
     private String lastLoginIp;
 
     public String getUsername() { return username; }
+    public String getTenantId() { return tenantId; }
+    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
     public void setUsername(String username) { this.username = username; }
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }

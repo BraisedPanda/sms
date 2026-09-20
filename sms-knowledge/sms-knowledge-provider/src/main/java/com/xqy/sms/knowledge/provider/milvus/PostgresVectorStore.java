@@ -24,14 +24,18 @@ public class PostgresVectorStore implements MilvusVectorStore {
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
     private final String tableName;
+    private final int embeddingDimensions;
 
     public PostgresVectorStore(ObjectMapper objectMapper,
                                @Value("${sms.knowledge.postgres.url}") String url,
                                @Value("${sms.knowledge.postgres.username}") String username,
                                @Value("${sms.knowledge.postgres.password}") String password,
-                               @Value("${sms.knowledge.postgres.table}") String tableName) {
+                               @Value("${sms.knowledge.postgres.table}") String tableName,
+                               @Value("${sms.knowledge.embedding-dimensions}") int embeddingDimensions) {
         this.objectMapper = objectMapper;
         this.tableName = safeTableName(tableName);
+        if (embeddingDimensions <= 0) throw new IllegalArgumentException("embeddingDimensions must be positive");
+        this.embeddingDimensions = embeddingDimensions;
         DriverManagerDataSource dataSource = new DriverManagerDataSource(url, username, password);
         dataSource.setDriverClassName("org.postgresql.Driver");
         this.jdbcTemplate = new JdbcTemplate(dataSource);
@@ -42,12 +46,17 @@ public class PostgresVectorStore implements MilvusVectorStore {
         if (query == null || query.getEmbedding() == null || query.getEmbedding().isEmpty()) {
             return Collections.emptyList();
         }
+        if (query.getEmbedding().size() != embeddingDimensions) {
+            throw new IllegalArgumentException("Embedding dimension must be " + embeddingDimensions);
+        }
         List<Object> args = new ArrayList<>();
-        StringBuilder sql = new StringBuilder("SELECT id, knowledge_base_id, document_id, document_no, "
+        if (query.getTenantId() == null || query.getTenantId().isBlank()) return Collections.emptyList();
+        StringBuilder sql = new StringBuilder("SELECT id, tenant_id, knowledge_base_id, document_id, document_no, "
                 + "document_version_id, index_revision, chunk_no, content, metadata, status, "
                 + "1 - (embedding <=> CAST(? AS vector)) AS score FROM ")
-                .append(tableName).append(" WHERE status = 'ACTIVE'");
+                .append(tableName).append(" WHERE status = 'ACTIVE' AND tenant_id = ?");
         args.add(vectorLiteral(query.getEmbedding()));
+        args.add(query.getTenantId());
         if (query.getKnowledgeBaseId() != null) {
             sql.append(" AND knowledge_base_id = ?");
             args.add(query.getKnowledgeBaseId());
@@ -80,6 +89,7 @@ public class PostgresVectorStore implements MilvusVectorStore {
     private AiknowledgeChunk mapChunk(ResultSet rs, int rowNum) throws java.sql.SQLException {
         AiknowledgeChunk chunk = new AiknowledgeChunk();
         chunk.setId(rs.getLong("id"));
+        chunk.setTenantId(rs.getString("tenant_id"));
         chunk.setKnowledgeBaseId(nullableLong(rs, "knowledge_base_id"));
         chunk.setDocumentId(nullableLong(rs, "document_id"));
         chunk.setDocumentNo(rs.getString("document_no"));

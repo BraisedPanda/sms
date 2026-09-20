@@ -54,8 +54,11 @@ public class KnowledgeDocumentIngestionService {
         int indexRevision = request == null || request.indexRevision() == null ? defaultIndexRevision : request.indexRevision();
         if (indexRevision <= 0) throw new IllegalArgumentException("indexRevision must be positive");
 
-        List<StagingDetail> details = loadDetails(request == null ? null : request.knowledgeBaseId(),
-                request == null ? null : request.documentVersionId(), limit);
+        if (request == null || request.tenantId() == null || request.tenantId().isBlank()) {
+            throw new IllegalArgumentException("tenantId must not be blank");
+        }
+        List<StagingDetail> details = loadDetails(request.knowledgeBaseId(),
+                request.documentVersionId(), request.tenantId(), limit);
         if (details.isEmpty()) return new IngestionResult(0, 0, indexRevision);
 
         List<List<Float>> embeddings = embeddingService.embedAll(
@@ -63,23 +66,24 @@ public class KnowledgeDocumentIngestionService {
         int imported = 0;
         for (int i = 0; i < details.size(); i++) {
             StagingDetail detail = details.get(i);
-            upsertChunk(detail, embeddings.get(i), indexRevision);
+            upsertChunk(detail, embeddings.get(i), indexRevision, request.tenantId());
             imported++;
         }
         return new IngestionResult(details.size(), imported, indexRevision);
     }
 
-    private List<StagingDetail> loadDetails(Long knowledgeBaseId, Long documentVersionId, int limit) {
+    private List<StagingDetail> loadDetails(Long knowledgeBaseId, Long documentVersionId, String tenantId, int limit) {
         StringBuilder sql = new StringBuilder("""
                 SELECT d.knowledge_base_id, d.id AS document_id, d.document_no,
                        v.id AS document_version_id, x.chunk_no, x.content, x.metadata
                   FROM ai_knowledge_document_detail x
                   JOIN ai_knowledge_document d ON d.id = x.document_id
                   JOIN ai_knowledge_document_version v
-                    ON v.id = x.document_version_id AND v.document_id = d.id
-                 WHERE 1 = 1
+                    ON v.id = x.document_version_id AND v.document_id = d.id AND v.tenant_id = d.tenant_id
+                 WHERE d.tenant_id = ? AND x.tenant_id = d.tenant_id
                 """);
         List<Object> args = new ArrayList<>();
+        args.add(tenantId);
         if (knowledgeBaseId != null) {
             sql.append(" AND d.knowledge_base_id = ?");
             args.add(knowledgeBaseId);
@@ -101,20 +105,20 @@ public class KnowledgeDocumentIngestionService {
         ), args.toArray());
     }
 
-    private void upsertChunk(StagingDetail detail, List<Float> embedding, int indexRevision) {
+    private void upsertChunk(StagingDetail detail, List<Float> embedding, int indexRevision, String tenantId) {
         if (embedding == null || embedding.isEmpty()) {
             throw new IllegalStateException("Embedding response is empty for chunk " + detail.chunkNo());
         }
         String sql = "INSERT INTO " + vectorTable + " "
-                + "(knowledge_base_id, document_id, document_no, document_version_id, index_revision, "
+                + "(tenant_id, knowledge_base_id, document_id, document_no, document_version_id, index_revision, "
                 + "chunk_no, content, metadata, embedding, status) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, CAST(? AS jsonb), CAST(? AS vector), 'ACTIVE') "
-                + "ON CONFLICT (knowledge_base_id, document_id, document_version_id, index_revision, chunk_no) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS jsonb), CAST(? AS vector), 'ACTIVE') "
+                + "ON CONFLICT (tenant_id, knowledge_base_id, document_id, document_version_id, index_revision, chunk_no) "
                 + "DO UPDATE SET document_no = EXCLUDED.document_no, content = EXCLUDED.content, "
                 + "metadata = EXCLUDED.metadata, embedding = EXCLUDED.embedding, status = 'ACTIVE', "
-                + "sys_update_time = CURRENT_TIMESTAMP";
+                + "update_time = CURRENT_TIMESTAMP";
         vectorJdbcTemplate.update(sql,
-                detail.knowledgeBaseId(), detail.documentId(), detail.documentNo(), detail.documentVersionId(),
+                tenantId, detail.knowledgeBaseId(), detail.documentId(), detail.documentNo(), detail.documentVersionId(),
                 indexRevision, detail.chunkNo(), detail.content(), metadataJson(detail), vectorLiteral(embedding));
     }
 
@@ -156,7 +160,7 @@ public class KnowledgeDocumentIngestionService {
     }
 
     public record IngestionRequest(Long knowledgeBaseId, Long documentVersionId,
-                                   Integer limit, Integer indexRevision) { }
+                                   Integer limit, Integer indexRevision, String tenantId) { }
 
     public record IngestionResult(int selected, int imported, int indexRevision) { }
 

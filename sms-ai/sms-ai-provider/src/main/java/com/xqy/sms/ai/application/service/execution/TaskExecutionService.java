@@ -5,6 +5,7 @@ import com.xqy.sms.ai.domain.model.AiTask;
 import com.xqy.sms.ai.domain.model.AiTaskResult;
 import com.xqy.sms.ai.infrastructure.model.AiToolRegistry;
 import com.xqy.sms.ai.application.service.run.AiTaskRunService;
+import com.xqy.sms.ai.infrastructure.security.AiSafetyPolicy;
 import com.xqy.sms.common.entity.AiTaskStep;
 import org.springframework.stereotype.Service;
 
@@ -89,6 +90,7 @@ public class TaskExecutionService {
         if (task == null || task.getMissingArgs() != null && !task.getMissingArgs().isEmpty()) {
             throw new IllegalArgumentException("Task is missing required arguments");
         }
+        AiSafetyPolicy.validateToolTask(task);
     }
 
     private Exception unwrap(Exception error) {

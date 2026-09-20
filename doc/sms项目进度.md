@@ -48,10 +48,10 @@ SMS 的目标是建设面向企业业务的 AI 平台，而非单次聊天接口
 | 模型接入与会话编排 | **60%** | 支持模型定义、别名、OpenAI 兼容适配、Redis 记忆和 `PLAN -> TOOL -> COMPOSE`。 |
 | 工具/Agent 治理 | **45%** | 已有工具注册、领域执行器、日志、重试和租约；缺审批、版本、策略和数据权限。 |
 | 企业知识库与 RAG | **35%** | 已有元数据、分块、embedding、pgvector/Milvus 适配和入库接口；未完成真实验收与运营闭环。 |
-| 认证、RBAC 与数据隔离 | **55%** | Web 解析 Auth0 JWT，并经 System 的 Redis/MySQL 会话状态加载角色和按钮权限；租户数据模型、行级过滤和权限运营尚未实现。 |
+| 认证、RBAC 与数据隔离 | **65%** | Web 解析 Auth0 JWT，并经 System 加载会话、角色和按钮权限；核心 run、知识库、工具与日志链路已实施租户/用户范围校验，权限运营界面和全域 ACL 尚未完成。 |
 | 前端产品闭环 | **30%** | 登录续期、注销、用户列表和动态菜单已接入 `sms-web`；SSE 聊天、知识库和其他运营页面尚未接真实后端。 |
 | 可靠性与可观测性 | **20%** | 有 run/step、日志和局部重试；没有 trace、指标、告警、Outbox 或完整恢复机制。 |
-| 测试、交付与运维 | **20%** | 有定向编译、JWT 单测和前端类型检查；没有完整测试矩阵、CI/CD、迁移治理和部署方案。 |
+| 测试、交付与运维 | **30%** | 有核心安全契约定向测试、受影响模块编译和前端类型检查；没有完整测试矩阵、CI/CD、自动迁移治理和生产部署验收。 |
 
 ## 3. 已完成功能
 
@@ -87,13 +87,14 @@ SMS 的目标是建设面向企业业务的 AI 平台，而非单次聊天接口
 - 已增加 `sys_user`、`sys_role`、`sys_menu`、`sys_button`、关联表及 `sys_user_session` 实体与 DDL。
 - `sms-web` 是 AI 的唯一外部 HTTP 入口，在本地校验 JWT 后通过 System 校验 Redis/MySQL 会话与吊销状态，再将可信用户和会话标识经 Dubbo 传给 AI Provider。
 - AI Provider 不再暴露业务 REST 或独立 JWT 过滤链；聊天、取消和知识入库均使用 `sms-ai-api` 契约。
-- AI 任务取消与幂等键复用已校验用户及会话归属，禁止跨用户操作任务。
+- AI 任务查询、取消与幂等键复用已校验租户、用户及会话归属，禁止跨租户或跨用户操作任务。
 - 前端登录与用户信息接口保留原契约，开发代理已转发到 `sms-web:9090`。
 
 ### 3.5 工程与配置
 
 - `sms-ai` 已完成应用层、领域层、基础设施层和接口层分包。
 - AI 请求日志和工具执行日志实体已迁入 `sms-common-persistent`。
+- 共享实体审计字段已统一为 `createBy`、`modifyBy`、`createTime`、`updateTime`，数据库列统一为 `create_by`、`modify_by`、`create_time`、`update_time`；MySQL 与 PostgreSQL 均提供幂等迁移脚本。
 - 根目录 `.env` 仅保留密钥、账号密码和部署环境地址；稳定参数默认值已回归各服务 YAML，并保留 `${ENV:default}` 覆盖形式。
 - 环境变量已去除 `SMS_` 前缀；`.env.example` 对敏感凭据保持空白，对本地环境地址提供可替换样例。
 
@@ -103,19 +104,19 @@ SMS 的目标是建设面向企业业务的 AI 平台，而非单次聊天接口
 
 | 差距 | 当前情况 | 企业级目标 |
 |---|---|---|
-| 租户隔离 | JWT 已预留 `tenantId` 与数据范围声明，但没有租户数据模型、过滤器或行级数据隔离。 | 所有会话、知识库、工具、日志和权限按租户隔离。 |
-| 内部服务信任 | 外部 AI 请求已统一经 Web/System 校验会话和吊销状态，AI Provider 信任 Web 传入的 Dubbo 身份参数。 | 为 Dubbo 增加服务身份认证、网络隔离和调用审计，避免内部接口被绕过调用。 |
+| 租户隔离 | JWT、会话、run、知识库、向量检索、工具与日志已携带并校验 `tenantId`；其他业务域和知识库细粒度 ACL 尚未全覆盖。 | 将同一约束扩展到全部业务域，并按部署需要增加数据库 RLS 或等效纵深防御。 |
+| 内部服务信任 | Web -> AI -> Knowledge 使用短时 HMAC 签名调用上下文和结构化审计日志，已提供网络访问矩阵。 | 在生产环境落实安全组/NetworkPolicy，并使用 mTLS 或服务网格管理服务身份与密钥轮换。 |
 | RBAC 运营 | 已有登录和权限查询，没有用户/角色/菜单/按钮的管理 API 和前端。 | 支持授权分配、会话注销、权限变更即时生效和审计。 |
-| 数据保护 | Prompt、工具结果和日志没有统一脱敏、分级和留存策略。 | 实现字段级脱敏、访问审计、加密、留存与删除机制。 |
+| 数据保护 | 工具输入、返回结果、Prompt/SSE 和相关日志已实施白名单、脱敏、长度限制与不可信数据分隔；分级、加密和留存删除策略尚未完成。 | 补齐数据分级、静态加密、密钥轮换、留存与删除机制。 |
 
 ### P0：RAG 可用性
 
 | 差距 | 当前情况 | 企业级目标 |
 |---|---|---|
-| 向量维度 | pgvector DDL 为 `VECTOR(1024)`，默认 embedding 配置为 `1536`。 | 统一模型、配置和表结构维度，并在启动/入库时校验。 |
+| 向量维度 | pgvector DDL、Milvus/embedding 配置和运行时校验已统一为 `1536`；尚未在可用 PostgreSQL 与 embedding 服务上完成运行验证。 | 在目标环境执行迁移，并通过真实模型完成入库与检索维度验收。 |
 | 真实模型验证 | 未证明当前 embedding 服务、模型名和维度可用。 | 完成真实文档入库、重复入库、召回、来源引用的端到端验收。 |
 | 文档生命周期 | 只有分块和入库骨架，没有上传、解析、切分策略版本和异步任务运营。 | 支持文件上传、解析、切分、队列、失败重放、版本切换和删除。 |
-| RAG 安全 | 检索没有按租户、知识库 ACL、文档状态和有效版本做完整过滤。 | 在检索、工具与回答侧执行统一 ACL 和来源引用策略。 |
+| RAG 安全 | 检索已强制租户过滤、`ACTIVE` 状态和受控来源回传；知识库成员 ACL、文档有效版本策略仍未完成。 | 在检索、工具与回答侧执行统一 ACL、有效版本和来源引用策略。 |
 
 ### P1：AI/Agent 治理
 
@@ -155,11 +156,11 @@ SMS 的目标是建设面向企业业务的 AI 平台，而非单次聊天接口
 
 ### 阶段 A：建立安全可用的最小闭环（P0）
 
-1. 为 run、知识库和工具结果增加租户与用户范围校验；为内部 Dubbo 调用增加服务身份认证、网络隔离和审计。
-2. 执行系统 DDL，补充 `ENABLED` 用户、角色、菜单、按钮和关联初始数据；使用 BCrypt 生成初始密码。
-3. 统一 pgvector 和 embedding 的维度，选择已验证的 embedding 模型，完成文档入库、重复导入和检索来源回传验收。
-4. 为聊天、取消、run 查询、知识入库等核心接口增加认证、授权、参数和错误契约测试。
-5. 对工具输入、返回结果和 Prompt 实施字段白名单、脱敏、长度限制和注入防护。
+1. **已完成**：run、知识库、日志和向量记录已增加租户范围；run 查询/取消校验租户与用户；内部 RPC 使用短时 HMAC 服务身份上下文并记录审计日志，网络隔离矩阵见 `doc/internal-rpc-security.md`。
+2. **已完成**：MySQL 基础 DDL、租户迁移和系统初始数据已执行；Admin、超级管理员、菜单、按钮和关联均为 `ENABLED`，初始密码为 BCrypt 哈希。
+3. **部分完成**：代码、pgvector DDL 和运行时校验已统一为 1536 维，入库按租户和文档版本幂等，SSE 回传受控来源字段；当前 PostgreSQL `localhost:5432` 未启动，配置的 embedding 上游返回 `model_not_found` 且模型列表没有 embedding 候选，真实入库/重复导入/召回验收仍阻塞。
+4. **已完成（定向测试）**：聊天、取消、run 查询和知识入库增加认证上下文、参数边界、跨租户/跨用户拒绝及 `400/403/404` 错误契约测试。
+5. **已完成**：工具执行强制租户/用户范围和参数上限；进入 Prompt/SSE/日志的工具结果使用字段白名单、脱敏、截断和不可信数据分隔。
 
 ### 阶段 B：完成产品和运营闭环（P1）
 
@@ -182,12 +183,17 @@ SMS 的目标是建设面向企业业务的 AI 平台，而非单次聊天接口
 以下定向验证已通过：
 
 ```text
-mvn -pl sms-common-core -Dtest=JwtTokenServiceTest test
-mvn -pl sms-ai/sms-ai-provider,sms-web,sms-system/sms-system-provider -am -DskipTests compile
+mvn -pl sms-common-core,sms-ai/sms-ai-provider,sms-web,sms-knowledge/sms-knowledge-provider -am "-Dtest=InternalCallSignerTest,JwtTokenServiceTest,AiSafetyPolicyTest,AiTaskRunServiceTest,AiControllerSecurityTest,ApiExceptionHandlerTest,KnowledgeServiceSecurityTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn -pl sms-ai/sms-ai-provider,sms-web,sms-system/sms-system-provider,sms-knowledge/sms-knowledge-provider -am -DskipTests compile
+mvn -pl sms-student/sms-student-provider,sms-ai/sms-ai-provider,sms-system/sms-system-provider,sms-knowledge/sms-knowledge-provider -am -DskipTests compile
 pnpm run build
 ```
 
-已验证的是共享 JWT 声明、AI/System/Web 定向编译和前端生产构建；尚未验证真实 MySQL、Redis、Nacos、模型服务、PostgreSQL/pgvector、Milvus 的运行时集成行为，也尚未进行登录、刷新、退出、动态菜单和 SSE 的 HTTP 端到端测试。
+15 个定向测试已通过，覆盖共享 JWT、内部 RPC 签名、run 归属、工具边界、Web 命令边界与错误契约、知识检索租户签名；受影响模块编译通过。MySQL 8.0.43 的 `sms_dev` 已执行基础 DDL、租户迁移和 RBAC 初始化，迁移重复执行通过；10 张目标表均有 `tenant_id`，Admin 使用 BCrypt 且状态为 `ENABLED`。此前前端生产构建已通过，本轮未重复执行。
+
+尚未通过的外部集成：PostgreSQL/pgvector 连接被拒绝；embedding 上游对 `text-embedding-3-small` 返回 `model_not_found`，且 `/models` 未返回 embedding 候选。因此真实文档入库、重复导入、召回质量和来源端到端验收仍需在可用模型与 PostgreSQL 服务就绪后执行。Redis、Nacos、Milvus 和 HTTP/SSE 端到端测试本轮未执行。
+
+审计列改名后的 Student、AI、System、Knowledge 及直接依赖模块编译通过。迁移脚本已生成但未对现有 MySQL/PostgreSQL 实例执行，部署新版服务前需先执行对应数据库脚本。
 
 ## 8. 阶段验收标准
 

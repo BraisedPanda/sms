@@ -3,6 +3,7 @@ package com.xqy.sms.ai.infrastructure.service.log;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.xqy.sms.ai.infrastructure.persistence.mapper.AiRequestLogMapper;
 import com.xqy.sms.common.entity.AiRequestLog;
+import com.xqy.sms.ai.infrastructure.security.AiSafetyPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -22,13 +23,14 @@ public class AiRequestLogService {
         this.mapper = mapper;
     }
 
-    public AiRequestLog start(String requestId, String userId, String sessionId, String question,
+    public AiRequestLog start(String requestId, String tenantId, String userId, String sessionId, String question,
                               String requestType, String modelName) {
         AiRequestLog record = new AiRequestLog();
         record.setRequestId(requestId);
+        record.setTenantId(tenantId);
         record.setUserId(userId);
         record.setSessionId(sessionId);
-        record.setQuestion(question);
+        record.setQuestion(AiSafetyPolicy.redact(question));
         record.setRequestType(requestType);
         record.setModelName(modelName);
         record.setStartTime(LocalDateTime.now());
@@ -67,7 +69,7 @@ public class AiRequestLogService {
             record.setOutputTokenCount(outputTokens);
             record.setTotalTokenCount(totalTokens);
             record.setErrorCode(errorCode);
-            record.setErrorMessage(errorMessage);
+            record.setErrorMessage(AiSafetyPolicy.redact(errorMessage));
             mapper.updateById(record);
             log.info("requestId={} request finished success={} durationMs={} tokens={}",
                     requestId, success, record.getDurationTime(), totalTokens);

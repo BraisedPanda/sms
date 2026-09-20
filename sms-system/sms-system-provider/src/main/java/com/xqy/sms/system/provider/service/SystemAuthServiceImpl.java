@@ -54,7 +54,8 @@ public class SystemAuthServiceImpl implements SystemAuthService {
         if (user == null || !ENABLED.equals(user.getStatus()) || !encoder.matches(password, user.getPassword())) throw invalid();
         LocalDateTime now = LocalDateTime.now();
         SysUserSession session = new SysUserSession();
-        session.setUserId(user.getId()); session.setLoginIp(ip); session.setUserAgent(userAgent);
+        session.setUserId(user.getId()); session.setTenantId(requiredTenant(user.getTenantId()));
+        session.setLoginIp(ip); session.setUserAgent(userAgent);
         session.setDeviceType(deviceType(userAgent)); session.setLoginTime(now); session.setStatus(ACTIVE);
         session.setAccessToken(""); session.setRefreshToken("");
         session.setExpireTime(now); session.setRefreshExpireTime(now);
@@ -69,6 +70,7 @@ public class SystemAuthServiceImpl implements SystemAuthService {
         if (!JwtTokenService.REFRESH_TOKEN.equals(context.tokenType()) || revoked(context.tokenId())) throw invalid();
         SysUserSession session = sessionMapper.selectByIdForUpdate(context.sessionId());
         if (session == null || !ACTIVE.equals(session.getStatus()) || !context.userId().equals(session.getUserId())
+                || !java.util.Objects.equals(context.tenantId(), session.getTenantId())
                 || !context.tokenId().equals(session.getRefreshJti()) || expired(session.getRefreshExpireTime())) throw invalid();
         SysUser user = userMapper.selectById(context.userId());
         if (user == null || !ENABLED.equals(user.getStatus())) throw invalid();
@@ -84,7 +86,8 @@ public class SystemAuthServiceImpl implements SystemAuthService {
                 || expired(session.getExpireTime())) throw invalid();
         SysUser user = userMapper.selectById(userId);
         if (user == null || !ENABLED.equals(user.getStatus())) throw invalid();
-        return new SystemAuthModels.Principal(user.getId(), session.getId(), tokenId,
+        if (!java.util.Objects.equals(requiredTenant(user.getTenantId()), session.getTenantId())) throw invalid();
+        return new SystemAuthModels.Principal(user.getId(), session.getId(), tokenId, session.getTenantId(),
                 authorizationMapper.findRoleCodes(user.getId()), authorizationMapper.findButtonAuthorities(user.getId()));
     }
 
@@ -121,14 +124,14 @@ public class SystemAuthServiceImpl implements SystemAuthService {
         List<SystemAuthModels.User> records = page.getRecords().stream().map(user -> new SystemAuthModels.User(
                 user.getId(), user.getUsername(), "", user.getNickname(), user.getPhone(), user.getEmail(), user.getAvatar(),
                 ENABLED.equals(user.getStatus()) ? "1" : "2", authorizationMapper.findRoleCodes(user.getId()),
-                user.getSysCreator(), text(user.getSysCreateTime()), user.getSysModifier(), text(user.getSysUpdateTime()))).toList();
+                user.getCreateBy(), text(user.getCreateTime()), user.getModifyBy(), text(user.getUpdateTime()))).toList();
         return new SystemAuthModels.UserPage(records, page.getCurrent(), page.getSize(), page.getTotal());
     }
 
     private SystemAuthModels.TokenPair issue(SysUserSession session, LocalDateTime now) {
         revoke(session.getAccessJti(), secondsUntil(session.getExpireTime()));
         revoke(session.getRefreshJti(), secondsUntil(session.getRefreshExpireTime()));
-        JwtUserContext base = new JwtUserContext(session.getUserId(), session.getId(), "pending", null,
+        JwtUserContext base = new JwtUserContext(session.getUserId(), session.getId(), "pending", requiredTenant(session.getTenantId()),
                 authorizationMapper.findRoleCodes(session.getUserId()), authorizationMapper.findButtonAuthorities(session.getUserId()), List.of(), JwtTokenService.ACCESS_TOKEN);
         String access = jwt.createAccessToken(base); String refresh = jwt.createRefreshToken(base);
         JwtUserContext accessContext = jwt.verifyAccessToken(access); JwtUserContext refreshContext = jwt.verify(refresh);
@@ -162,4 +165,8 @@ public class SystemAuthServiceImpl implements SystemAuthService {
         catch (NoSuchAlgorithmException impossible) { throw new IllegalStateException(impossible); }
     }
     private SystemAuthenticationException invalid() { return new SystemAuthenticationException(); }
+    private String requiredTenant(String tenantId) {
+        if (tenantId == null || tenantId.isBlank()) throw invalid();
+        return tenantId.trim();
+    }
 }

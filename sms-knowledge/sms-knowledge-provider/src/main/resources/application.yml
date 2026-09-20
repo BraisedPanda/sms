@@ -12,9 +12,12 @@ spring:
     driver-class-name: ${KNOWLEDGE_DATASOURCE_DRIVER_CLASS_NAME:com.mysql.cj.jdbc.Driver}
 
 sms:
+  internal-rpc:
+    secret: ${INTERNAL_RPC_SECRET}
   knowledge:
     # Use "milvus" to route queryVector through Milvus; PostgreSQL/pgvector is the default.
     vector-store: ${KNOWLEDGE_VECTOR_STORE:postgres}
+    embedding-dimensions: ${EMBEDDING_DIMENSIONS:1536}
     postgres:
       url: ${KNOWLEDGE_POSTGRES_URL}
       username: ${KNOWLEDGE_POSTGRES_USERNAME}

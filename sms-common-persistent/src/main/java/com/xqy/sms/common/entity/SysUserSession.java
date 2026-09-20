@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 
 @TableName("sys_user_session")
 public class SysUserSession extends BaseEntity {
+    @TableField("tenant_id") private String tenantId;
     @TableField("user_id") private Long userId;
     private String accessToken;
     private String refreshToken;
@@ -21,6 +22,8 @@ public class SysUserSession extends BaseEntity {
     private String status;
     private LocalDateTime logoutTime;
     public Long getUserId() { return userId; }
+    public String getTenantId() { return tenantId; }
+    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
     public void setUserId(Long userId) { this.userId = userId; }
     public String getAccessToken() { return accessToken; }
     public void setAccessToken(String accessToken) { this.accessToken = accessToken; }

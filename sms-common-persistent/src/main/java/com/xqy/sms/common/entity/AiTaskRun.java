@@ -9,6 +9,8 @@ import java.time.LocalDateTime;
 /** Persistent lifecycle record for one planned AI conversation run. */
 @TableName("ai_task_run")
 public class AiTaskRun extends BaseEntity implements Serializable {
+    @TableField("tenant_id")
+    private String tenantId;
     @TableField("run_id")
     private String runId;
     @TableField("request_id")
@@ -43,6 +45,8 @@ public class AiTaskRun extends BaseEntity implements Serializable {
     private String errorMessage;
 
     public String getRunId() { return runId; }
+    public String getTenantId() { return tenantId; }
+    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
     public void setRunId(String runId) { this.runId = runId; }
     /** Compatibility alias for callers using the database-style runID spelling. */
     public String getRunID() { return runId; }

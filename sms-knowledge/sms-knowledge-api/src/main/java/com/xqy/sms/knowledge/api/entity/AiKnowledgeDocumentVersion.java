@@ -7,6 +7,7 @@ import java.io.Serializable;
 
 @TableName("ai_knowledge_document_version")
 public class AiKnowledgeDocumentVersion extends BaseEntity implements Serializable {
+    @TableField("tenant_id") private String tenantId;
     @TableField("document_id") private Long documentId;
     private String version;
     @TableField("source_uri") private String sourceUri;
@@ -18,6 +19,8 @@ public class AiKnowledgeDocumentVersion extends BaseEntity implements Serializab
     private Integer chunkCount;
     @TableField("error_message") private String errorMessage;
     public Long getDocumentId() { return documentId; }
+    public String getTenantId() { return tenantId; }
+    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
     public void setDocumentId(Long documentId) { this.documentId = documentId; }
     public String getVersion() { return version; }
     public void setVersion(String version) { this.version = version; }

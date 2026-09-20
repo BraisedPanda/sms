@@ -5,13 +5,14 @@ import com.xqy.sms.ai.domain.model.AiConstants;
 import com.xqy.sms.ai.domain.model.AiTask;
 import com.xqy.sms.ai.domain.model.AiTaskRequest;
 import com.xqy.sms.ai.domain.model.AiTaskResult;
+import com.xqy.sms.ai.application.event.AiStreamEventPublisher;
 import com.xqy.sms.ai.application.service.chat.AiChatService;
 import com.xqy.sms.ai.application.service.execution.TaskExecutionService;
 import com.xqy.sms.ai.infrastructure.service.log.AiRequestLogService;
+import com.xqy.sms.ai.infrastructure.security.AiSafetyPolicy;
 import com.xqy.sms.common.security.jwt.JwtUserContext;
 import com.xqy.sms.ai.application.service.plan.TaskPlannerService;
 import com.xqy.sms.ai.application.service.run.AiTaskRunService;
-import com.xqy.sms.ai.application.service.transport.SseTransportService;
 import com.xqy.sms.common.entity.AiTaskRun;
 import com.xqy.sms.common.entity.AiTaskStep;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -19,7 +20,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +35,7 @@ public class ConversationApplicationService {
     private final AiChatService chatService;
     private final AiRequestLogService requestLogService;
     private final StringRedisTemplate redisTemplate;
-    private final SseTransportService transport;
+    private final AiStreamEventPublisher eventPublisher;
     private final TaskExecutor workflowExecutor;
     private final int maxAttempts;
     private final long stepTimeoutMs;
@@ -44,7 +44,7 @@ public class ConversationApplicationService {
     public ConversationApplicationService(AiTaskRunService runService, TaskPlannerService plannerService,
                                           TaskExecutionService executionService, AiChatService chatService,
                                           AiRequestLogService requestLogService, StringRedisTemplate redisTemplate,
-                                          SseTransportService transport,
+                                          AiStreamEventPublisher eventPublisher,
                                           @Qualifier("aiWorkflowExecutor") TaskExecutor workflowExecutor,
                                           @Value("${sms.ai.workflow.max-attempts}") int maxAttempts,
                                           @Value("${sms.ai.workflow.step-timeout-ms}") long stepTimeoutMs,
@@ -55,49 +55,49 @@ public class ConversationApplicationService {
         this.chatService = chatService;
         this.requestLogService = requestLogService;
         this.redisTemplate = redisTemplate;
-        this.transport = transport;
+        this.eventPublisher = eventPublisher;
         this.workflowExecutor = workflowExecutor;
         this.maxAttempts = maxAttempts;
         this.stepTimeoutMs = stepTimeoutMs;
         this.businessResultTtlMinutes = businessResultTtlMinutes;
     }
 
-    public SseEmitter start(AiTaskRequest request, JwtUserContext userContext) {
-        return start(request, userContext, null);
-    }
-
-    public SseEmitter start(AiTaskRequest request, JwtUserContext userContext, String streamKey) {
+    public void start(AiTaskRequest request, JwtUserContext userContext, String streamKey) {
         validate(request);
         if (userContext == null) throw new IllegalArgumentException("authenticated user context must not be null");
+        if (streamKey == null || streamKey.isBlank()) throw new IllegalArgumentException("streamKey must not be blank");
         String alias = request.getAlias() == null || request.getAlias().isBlank()
                 ? AiConstants.MODEL_ALIAS.BALANCED : request.getAlias().trim();
-        AiTaskRun run = runService.createOrReuse(UUID.randomUUID().toString(), String.valueOf(userContext.userId()),
+        AiTaskRun run = runService.createOrReuse(UUID.randomUUID().toString(), userContext.tenantId(), String.valueOf(userContext.userId()),
                 String.valueOf(userContext.sessionId()),
                 request.getQuestion(), alias, request.getIdempotencyKey());
-        SseEmitter emitter = streamKey == null ? transport.createEmitter() : transport.createStreamEmitter(streamKey);
-        transport.send(emitter, AiConstants.SSE_EVENT.START, java.util.Map.of("runId", run.getRunId()));
+        publish(streamKey, AiConstants.STREAM_EVENT.START, java.util.Map.of("runId", run.getRunId()));
         if (runService.claimPendingRun(run.getRunId())) {
-            requestLogService.start(run.getRequestId(), run.getUserId(), run.getSessionId(), run.getQuestion(),
+            requestLogService.start(run.getRequestId(), run.getTenantId(), run.getUserId(), run.getSessionId(), run.getQuestion(),
                     "chat", run.getModelAlias());
-            workflowExecutor.execute(() -> execute(run.getRunId(), emitter));
+            workflowExecutor.execute(() -> execute(run.getRunId(), streamKey));
         } else {
-            transport.send(emitter, AiConstants.SSE_EVENT.START,
+            publish(streamKey, AiConstants.STREAM_EVENT.START,
                     java.util.Map.of("runId", run.getRunId(), "status", run.getStatus()));
-            if (com.xqy.sms.ai.domain.model.AiTaskRunStatus.isTerminal(run.getStatus())) emitter.complete();
+            if (com.xqy.sms.ai.domain.model.AiTaskRunStatus.isTerminal(run.getStatus())) {
+                publish(streamKey,
+                        com.xqy.sms.ai.domain.model.AiTaskRunStatus.SUCCEEDED.equals(run.getStatus())
+                                ? AiConstants.STREAM_EVENT.DONE : AiConstants.STREAM_EVENT.ERROR,
+                        run.getStatus());
+            }
         }
-        return emitter;
     }
 
     public void cancel(String runId, JwtUserContext userContext) {
         if (userContext == null) throw new IllegalArgumentException("authenticated user context must not be null");
-        runService.cancel(runId, String.valueOf(userContext.userId()));
+        runService.cancel(runId, userContext.tenantId(), String.valueOf(userContext.userId()));
         executionService.cancel(runId);
     }
 
-    private void execute(String runId, SseEmitter emitter) {
+    private void execute(String runId, String streamKey) {
         try {
             AiTaskRun run = runService.requireRun(runId);
-            transport.send(emitter, AiConstants.SSE_EVENT.PLANNING, "分析问题中");
+            publish(streamKey, AiConstants.STREAM_EVENT.PLANNING, "分析问题中");
             AiTaskStep planStep = runService.createStep(runId, 1, "PLAN", "planner", null,
                     run.getQuestion(), 1, stepTimeoutMs);
             runService.startStep(planStep, 1);
@@ -108,15 +108,18 @@ public class ConversationApplicationService {
             checkCancelled(runId);
 
             if (isChatPlan(tasks)) {
-                compose(runId, emitter, run, List.of());
+                compose(runId, streamKey, run, List.of());
                 return;
             }
-            transport.send(emitter, AiConstants.SSE_EVENT.EXECUTING, "查询相关数据");
+            publish(streamKey, AiConstants.STREAM_EVENT.EXECUTING, "查询相关数据");
             List<AiTaskResult> results = new ArrayList<>();
             for (int index = 0; index < tasks.size(); index++) {
                 checkCancelled(runId);
                 AiTask task = tasks.get(index);
                 task.setRequestId(run.getRequestId());
+                task.setTenantId(run.getTenantId());
+                task.setUserId(run.getUserId());
+                task.setSessionId(run.getSessionId());
                 AiTaskStep step = runService.createStep(runId, index + 2, "TOOL", task.getDomain(), task.getToolName(),
                         JSONUtil.toJsonStr(task), maxAttempts, stepTimeoutMs);
                 results.add(executionService.execute(runId, step, task));
@@ -124,30 +127,33 @@ public class ConversationApplicationService {
             String resultJson = JSONUtil.toJsonStr(results);
             redisTemplate.opsForValue().set(businessKey(run), resultJson,
                     Duration.ofMinutes(businessResultTtlMinutes));
-            compose(runId, emitter, run, results);
+            compose(runId, streamKey, run, results);
         } catch (TaskExecutionService.TaskCancelledException cancelled) {
             runService.markCancelled(runId);
             requestLogService.fail(runService.requireRun(runId).getRequestId(), "CANCELLED", cancelled);
-            transport.send(emitter, AiConstants.SSE_EVENT.ERROR, "AI 任务已取消");
-            emitter.complete();
+            publish(streamKey, AiConstants.STREAM_EVENT.ERROR, "AI 任务已取消");
         } catch (Exception error) {
             runService.failRun(runId, error);
             requestLogService.fail(runService.requireRun(runId).getRequestId(), error.getClass().getSimpleName(), error);
-            transport.error(emitter, error);
+            publish(streamKey, AiConstants.STREAM_EVENT.ERROR,
+                    error.getMessage() == null ? "AI task failed" : error.getMessage());
         }
     }
 
-    private void compose(String runId, SseEmitter emitter, AiTaskRun run, List<AiTaskResult> results) {
+    private void compose(String runId, String streamKey, AiTaskRun run, List<AiTaskResult> results) {
         checkCancelled(runId);
         int composeStepNo = results.isEmpty() ? 2 : results.size() + 2;
         AiTaskStep composeStep = runService.createStep(runId, composeStepNo, "COMPOSE", "chat", null,
                 JSONUtil.toJsonStr(results), 1, stepTimeoutMs);
         runService.startStep(composeStep, 1);
         runService.setRunStatus(runId, com.xqy.sms.ai.domain.model.AiTaskRunStatus.COMPOSING);
+        if (!results.isEmpty()) {
+            publish(streamKey, AiConstants.STREAM_EVENT.SOURCES, AiSafetyPolicy.publicSources(results));
+        }
         String prompt = results.isEmpty() ? run.getQuestion()
-                : "用户问题：\n" + run.getQuestion() + "\n\n业务查询结果（只能依据此结果回答，不要编造）：\n"
-                + JSONUtil.toJsonStr(results);
-        chatService.answer(emitter, prompt, memoryKey(run), run.getRequestId(), run.getModelAlias(),
+                : "User question:\n" + AiSafetyPolicy.redact(run.getQuestion()) + "\n\n"
+                + AiSafetyPolicy.promptResults(results);
+        chatService.answer(streamKey, prompt, memoryKey(run), run.getRequestId(), run.getModelAlias(),
                 () -> {
                     if (runService.isCancellationRequested(runId)) {
                         runService.markCancelled(runId);
@@ -163,6 +169,10 @@ public class ConversationApplicationService {
 
     private void checkCancelled(String runId) {
         if (runService.isCancellationRequested(runId)) throw new TaskExecutionService.TaskCancelledException();
+    }
+
+    private void publish(String streamKey, String type, Object data) {
+        eventPublisher.publish(streamKey, type, data);
     }
 
     private boolean isChatPlan(List<AiTask> tasks) {

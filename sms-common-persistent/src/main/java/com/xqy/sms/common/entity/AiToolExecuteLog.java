@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 @TableName("ai_tool_execute_log")
 public class AiToolExecuteLog extends BaseEntity {
 
+    private String tenantId;
     private String toolExecuteId;
     private String requestId;
     private String domain;
@@ -26,6 +27,8 @@ public class AiToolExecuteLog extends BaseEntity {
     private String errorMessage;
 
     public String getToolExecuteId() { return toolExecuteId; }
+    public String getTenantId() { return tenantId; }
+    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
     public void setToolExecuteId(String toolExecuteId) { this.toolExecuteId = toolExecuteId; }
     public String getRequestId() { return requestId; }
     public void setRequestId(String requestId) { this.requestId = requestId; }

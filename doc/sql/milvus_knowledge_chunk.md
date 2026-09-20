@@ -1,8 +1,8 @@
 # Milvus collection: `ai_knowledge_chunk`
 
 The provider uses Milvus REST v2 (`MILVUS_ENDPOINT`) and expects a collection
-with these fields. `embedding` is the collection vector field; its dimension
-must match the configured embedding model.
+with these fields. `embedding` is the collection vector field and must use
+dimension `1536`, matching `SMS_AI_EMBEDDING_DIMENSIONS` and the selected model.
 
 | field | type | notes |
 | --- | --- | --- |
@@ -15,5 +15,6 @@ must match the configured embedding model.
 | chunkNo | Int32 | chunk sequence |
 | content | VarChar | retrieved text |
 | metadata | JSON | source metadata |
-| embedding | FloatVector | semantic vector |
+| embedding | FloatVector(1536) | semantic vector; dimension must be 1536 |
+| tenantId | VarChar | mandatory tenant equality filter |
 | status | VarChar | `ACTIVE` records are searchable |

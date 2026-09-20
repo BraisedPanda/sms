@@ -8,8 +8,10 @@ import com.xqy.sms.ai.domain.model.ToolSource;
 import com.xqy.sms.knowledge.api.entity.AiknowledgeChunk;
 import com.xqy.sms.knowledge.api.model.KnowledgeVectorQuery;
 import com.xqy.sms.knowledge.api.service.KnowledgeService;
+import com.xqy.sms.common.security.rpc.InternalCallSigner;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -25,6 +27,11 @@ public class KnowledgeBusinessService {
     private KnowledgeService knowledgeService;
     @Autowired(required = false)
     private KnowledgeEmbeddingService embeddingService;
+    private final InternalCallSigner internalCallSigner;
+
+    public KnowledgeBusinessService(@Value("${sms.internal-rpc.secret}") String internalRpcSecret) {
+        this.internalCallSigner = new InternalCallSigner(internalRpcSecret);
+    }
 
     public AiTaskResult queryKnowledge(AiTask task) {
         KnowledgeVectorQuery request = toVectorQuery(task);
@@ -75,6 +82,13 @@ public class KnowledgeBusinessService {
             request.setEmbedding(embeddingService.embed(request.getQueryText()));
         }
         if (request.getTopK() != null && request.getTopK() <= 0) request.setTopK(null);
+        if (task == null || task.getTenantId() == null || task.getTenantId().isBlank()
+                || task.getUserId() == null || task.getSessionId() == null || task.getRequestId() == null) {
+            throw new IllegalArgumentException("tenant and user scope are required for knowledge retrieval");
+        }
+        request.setTenantId(task.getTenantId());
+        request.setCallerContext(internalCallSigner.sign("sms-ai-provider", task.getTenantId(),
+                Long.valueOf(task.getUserId()), Long.valueOf(task.getSessionId()), task.getRequestId()));
         return request;
     }
 

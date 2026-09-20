@@ -1,3 +1,7 @@
+-- SMS MySQL 8.0+ bootstrap schema.
+-- Run this script before data_init.sql on a database created with utf8mb4.
+SET NAMES utf8mb4;
+
 -- student 表 DDL
 CREATE TABLE IF NOT EXISTS student (
     id BIGINT NOT NULL AUTO_INCREMENT,
@@ -9,10 +13,10 @@ CREATE TABLE IF NOT EXISTS student (
     email VARCHAR(128) DEFAULT NULL COMMENT '邮箱',
     phone VARCHAR(32) DEFAULT NULL COMMENT '联系电话',
     enrolled_at DATETIME DEFAULT NULL COMMENT '入学时间',
-    sys_creator VARCHAR(64) DEFAULT NULL COMMENT '记录创建者',
-    sys_modifier VARCHAR(64) DEFAULT NULL COMMENT '记录修改者',
-    sys_create_time DATETIME DEFAULT NULL COMMENT '记录创建时间',
-    sys_update_time DATETIME DEFAULT NULL COMMENT '记录更新时间',
+    create_by VARCHAR(64) DEFAULT NULL COMMENT '记录创建者',
+    modify_by VARCHAR(64) DEFAULT NULL COMMENT '记录修改者',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '记录创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '记录更新时间',
     PRIMARY KEY (id),
     UNIQUE KEY uq_student_no (student_no)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='学生表';
@@ -27,10 +31,10 @@ CREATE TABLE IF NOT EXISTS ai_tool_definition (
     keywords TEXT DEFAULT NULL COMMENT '关键词',
     enable TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否启用',
     version VARCHAR(20) DEFAULT NULL COMMENT '版本号',
-    sys_creator VARCHAR(64) DEFAULT NULL COMMENT '记录创建者',
-    sys_modifier VARCHAR(64) DEFAULT NULL COMMENT '记录修改者',
-    sys_create_time DATETIME DEFAULT NULL COMMENT '记录创建时间',
-    sys_update_time DATETIME DEFAULT NULL COMMENT '记录更新时间',
+    create_by VARCHAR(64) DEFAULT NULL COMMENT '记录创建者',
+    modify_by VARCHAR(64) DEFAULT NULL COMMENT '记录修改者',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '记录创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '记录更新时间',
     PRIMARY KEY (id),
     UNIQUE KEY uq_ai_tool_definition_domain_name (domain, tool_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 工具定义表';
@@ -47,10 +51,10 @@ CREATE TABLE IF NOT EXISTS ai_model_definition (
     fallback_alias VARCHAR(64) DEFAULT NULL COMMENT '当前模型不可用时的回退模型别名',
     enabled VARCHAR(16) NOT NULL DEFAULT '1' COMMENT '是否启用，支持 1、true、yes',
     remark VARCHAR(500) DEFAULT NULL COMMENT '中文备注',
-    sys_creator VARCHAR(64) DEFAULT NULL COMMENT '记录创建者',
-    sys_modifier VARCHAR(64) DEFAULT NULL COMMENT '记录修改者',
-    sys_create_time DATETIME DEFAULT NULL COMMENT '记录创建时间',
-    sys_update_time DATETIME DEFAULT NULL COMMENT '记录更新时间',
+    create_by VARCHAR(64) DEFAULT NULL COMMENT '记录创建者',
+    modify_by VARCHAR(64) DEFAULT NULL COMMENT '记录修改者',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '记录创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '记录更新时间',
     PRIMARY KEY (id),
     UNIQUE KEY uq_ai_model_definition_alias (alias),
     UNIQUE KEY uq_ai_model_definition_provider_name (provider, model_name)
@@ -65,10 +69,10 @@ CREATE TABLE IF NOT EXISTS ai_prompt_template (
     version VARCHAR(32) DEFAULT NULL COMMENT 'prompt template version',
     enabled VARCHAR(16) NOT NULL DEFAULT '1' COMMENT 'whether the template is enabled',
     remark VARCHAR(500) DEFAULT NULL COMMENT 'remark',
-    sys_creator VARCHAR(64) DEFAULT NULL COMMENT 'creator',
-    sys_modifier VARCHAR(64) DEFAULT NULL COMMENT 'modifier',
-    sys_create_time DATETIME DEFAULT NULL COMMENT 'create time',
-    sys_update_time DATETIME DEFAULT NULL COMMENT 'update time',
+    create_by VARCHAR(64) DEFAULT NULL COMMENT 'creator',
+    modify_by VARCHAR(64) DEFAULT NULL COMMENT 'modifier',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'create time',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'update time',
     PRIMARY KEY (id),
     UNIQUE KEY uq_ai_prompt_template_code (prompt_code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI prompt templates';
@@ -76,6 +80,7 @@ CREATE TABLE IF NOT EXISTS ai_prompt_template (
 -- AI request invocation log
 CREATE TABLE IF NOT EXISTS ai_request_log (
     id BIGINT NOT NULL COMMENT 'primary key',
+    tenant_id VARCHAR(64) NOT NULL DEFAULT 'default',
     request_id VARCHAR(64) NOT NULL COMMENT 'request trace id',
     user_id VARCHAR(64) DEFAULT NULL,
     session_id VARCHAR(128) DEFAULT NULL,
@@ -91,19 +96,20 @@ CREATE TABLE IF NOT EXISTS ai_request_log (
     success TINYINT(1) NOT NULL DEFAULT 0,
     error_code VARCHAR(64) DEFAULT NULL,
     error_message TEXT DEFAULT NULL,
-    sys_creator VARCHAR(64) DEFAULT NULL,
-    sys_modifier VARCHAR(64) DEFAULT NULL,
-    sys_create_time DATETIME DEFAULT NULL,
-    sys_update_time DATETIME DEFAULT NULL,
+    create_by VARCHAR(64) DEFAULT NULL,
+    modify_by VARCHAR(64) DEFAULT NULL,
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uq_ai_request_log_request_id (request_id),
-    KEY idx_ai_request_log_session (session_id),
+    KEY idx_ai_request_log_tenant_session (tenant_id, session_id),
     KEY idx_ai_request_log_start_time (start_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI request invocation log';
 
 -- AI task run lifecycle. A run groups planning, tool execution and compose steps.
 CREATE TABLE IF NOT EXISTS ai_task_run (
     id BIGINT NOT NULL COMMENT 'primary key',
+    tenant_id VARCHAR(64) NOT NULL DEFAULT 'default',
     run_id VARCHAR(64) NOT NULL COMMENT 'run trace id',
     request_id VARCHAR(64) NOT NULL,
     user_id VARCHAR(64) DEFAULT NULL,
@@ -121,16 +127,17 @@ CREATE TABLE IF NOT EXISTS ai_task_run (
     finish_time DATETIME(3) DEFAULT NULL,
     error_code VARCHAR(64) DEFAULT NULL,
     error_message TEXT DEFAULT NULL,
-    sys_creator VARCHAR(64) DEFAULT NULL,
-    sys_modifier VARCHAR(64) DEFAULT NULL,
-    sys_create_time DATETIME DEFAULT NULL,
-    sys_update_time DATETIME DEFAULT NULL,
+    create_by VARCHAR(64) DEFAULT NULL,
+    modify_by VARCHAR(64) DEFAULT NULL,
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uq_ai_task_run_run_id (run_id),
-    UNIQUE KEY uq_ai_task_run_idempotency (idempotency_key),
+    UNIQUE KEY uq_ai_task_run_tenant_idempotency (tenant_id, idempotency_key),
     KEY idx_ai_task_run_request (request_id),
     KEY idx_ai_task_run_status (status),
-    KEY idx_ai_task_run_session (session_id)
+    KEY idx_ai_task_run_tenant_user (tenant_id, user_id),
+    KEY idx_ai_task_run_tenant_session (tenant_id, session_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI task run lifecycle';
 
 -- AI task step lifecycle. A step is a plan, tool or compose operation.
@@ -155,21 +162,23 @@ CREATE TABLE IF NOT EXISTS ai_task_step (
     finish_time DATETIME(3) DEFAULT NULL,
     error_code VARCHAR(64) DEFAULT NULL,
     error_message TEXT DEFAULT NULL,
-    sys_creator VARCHAR(64) DEFAULT NULL,
-    sys_modifier VARCHAR(64) DEFAULT NULL,
-    sys_create_time DATETIME DEFAULT NULL,
-    sys_update_time DATETIME DEFAULT NULL,
+    create_by VARCHAR(64) DEFAULT NULL,
+    modify_by VARCHAR(64) DEFAULT NULL,
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uq_ai_task_step_step_id (step_id),
     UNIQUE KEY uq_ai_task_step_run_no (task_run_id, step_no),
     UNIQUE KEY uq_ai_task_step_idempotency (idempotency_key),
     KEY idx_ai_task_step_status_lease (status, lease_expire_time),
+    KEY idx_ai_task_step_status_retry (status, next_retry_time),
     KEY idx_ai_task_step_run (task_run_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI task step lifecycle';
 
 -- AI tool execution log
 CREATE TABLE IF NOT EXISTS ai_tool_execute_log (
     id BIGINT NOT NULL COMMENT 'primary key',
+    tenant_id VARCHAR(64) NOT NULL DEFAULT 'default',
     tool_execute_id VARCHAR(64) NOT NULL COMMENT 'tool execution trace id',
     request_id VARCHAR(64) DEFAULT NULL,
     domain VARCHAR(128) NOT NULL,
@@ -186,13 +195,13 @@ CREATE TABLE IF NOT EXISTS ai_tool_execute_log (
     success TINYINT(1) NOT NULL DEFAULT 0,
     error_code VARCHAR(64) DEFAULT NULL,
     error_message TEXT DEFAULT NULL,
-    sys_creator VARCHAR(64) DEFAULT NULL,
-    sys_modifier VARCHAR(64) DEFAULT NULL,
-    sys_create_time DATETIME DEFAULT NULL,
-    sys_update_time DATETIME DEFAULT NULL,
+    create_by VARCHAR(64) DEFAULT NULL,
+    modify_by VARCHAR(64) DEFAULT NULL,
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uq_ai_tool_execute_log_execute_id (tool_execute_id),
-    KEY idx_ai_tool_execute_log_request_id (request_id),
+    KEY idx_ai_tool_execute_log_tenant_request (tenant_id, request_id),
     KEY idx_ai_tool_execute_log_start_time (start_time),
     KEY idx_ai_tool_execute_log_tool (domain, tool_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI tool execution log';
@@ -200,6 +209,7 @@ CREATE TABLE IF NOT EXISTS ai_tool_execute_log (
 -- Knowledge base metadata used by the RAG ingestion and retrieval services.
 CREATE TABLE IF NOT EXISTS ai_knowledge_base (
     id BIGINT NOT NULL,
+    tenant_id VARCHAR(64) NOT NULL DEFAULT 'default',
     name VARCHAR(128) NOT NULL,
     description VARCHAR(500) DEFAULT NULL,
     embedding_model_alias VARCHAR(128) DEFAULT NULL,
@@ -209,16 +219,17 @@ CREATE TABLE IF NOT EXISTS ai_knowledge_base (
     similarity_threshold DOUBLE DEFAULT NULL,
     enabled TINYINT(1) NOT NULL DEFAULT 1,
     remark VARCHAR(500) DEFAULT NULL,
-    sys_creator VARCHAR(64) DEFAULT NULL,
-    sys_modifier VARCHAR(64) DEFAULT NULL,
-    sys_create_time DATETIME DEFAULT NULL,
-    sys_update_time DATETIME DEFAULT NULL,
+    create_by VARCHAR(64) DEFAULT NULL,
+    modify_by VARCHAR(64) DEFAULT NULL,
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    UNIQUE KEY uq_ai_knowledge_base_name (name)
+    UNIQUE KEY uq_ai_knowledge_base_tenant_name (tenant_id, name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='RAG knowledge bases';
 
 CREATE TABLE IF NOT EXISTS ai_knowledge_document (
     id BIGINT NOT NULL,
+    tenant_id VARCHAR(64) NOT NULL DEFAULT 'default',
     knowledge_base_id BIGINT NOT NULL,
     document_no VARCHAR(128) NOT NULL,
     document_name VARCHAR(255) NOT NULL,
@@ -226,35 +237,37 @@ CREATE TABLE IF NOT EXISTS ai_knowledge_document (
     version VARCHAR(64) DEFAULT NULL,
     category VARCHAR(128) DEFAULT NULL,
     keywords TEXT DEFAULT NULL,
-    sys_creator VARCHAR(64) DEFAULT NULL,
-    sys_modifier VARCHAR(64) DEFAULT NULL,
-    sys_create_time DATETIME DEFAULT NULL,
-    sys_update_time DATETIME DEFAULT NULL,
+    create_by VARCHAR(64) DEFAULT NULL,
+    modify_by VARCHAR(64) DEFAULT NULL,
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    UNIQUE KEY uq_ai_knowledge_document_no (knowledge_base_id, document_no),
-    KEY idx_ai_knowledge_document_base (knowledge_base_id)
+    UNIQUE KEY uq_ai_knowledge_document_tenant_no (tenant_id, knowledge_base_id, document_no),
+    KEY idx_ai_knowledge_document_base (tenant_id, knowledge_base_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='RAG documents';
 
 -- Persistent staging details used as the source for vector database ingestion.
 CREATE TABLE IF NOT EXISTS ai_knowledge_document_detail (
     id BIGINT NOT NULL,
+    tenant_id VARCHAR(64) NOT NULL DEFAULT 'default',
     document_id BIGINT NOT NULL,
     document_version_id BIGINT NOT NULL,
     chunk_no INT NOT NULL,
     content TEXT NOT NULL,
     content_type VARCHAR(64) DEFAULT 'text/plain',
     metadata JSON DEFAULT NULL,
-    sys_creator VARCHAR(64) DEFAULT NULL,
-    sys_modifier VARCHAR(64) DEFAULT NULL,
-    sys_create_time DATETIME DEFAULT NULL,
-    sys_update_time DATETIME DEFAULT NULL,
+    create_by VARCHAR(64) DEFAULT NULL,
+    modify_by VARCHAR(64) DEFAULT NULL,
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    UNIQUE KEY uq_ai_knowledge_document_detail_chunk (document_version_id, chunk_no),
-    KEY idx_ai_knowledge_document_detail_document (document_id)
+    UNIQUE KEY uq_ai_knowledge_detail_tenant_chunk (tenant_id, document_version_id, chunk_no),
+    KEY idx_ai_knowledge_document_detail_document (tenant_id, document_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='RAG document content staging details';
 
 CREATE TABLE IF NOT EXISTS ai_knowledge_document_version (
     id BIGINT NOT NULL,
+    tenant_id VARCHAR(64) NOT NULL DEFAULT 'default',
     document_id BIGINT NOT NULL,
     version VARCHAR(64) NOT NULL,
     source_uri VARCHAR(1000) DEFAULT NULL,
@@ -265,17 +278,18 @@ CREATE TABLE IF NOT EXISTS ai_knowledge_document_version (
     index_status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
     chunk_count INT DEFAULT NULL,
     error_message TEXT DEFAULT NULL,
-    sys_creator VARCHAR(64) DEFAULT NULL,
-    sys_modifier VARCHAR(64) DEFAULT NULL,
-    sys_create_time DATETIME DEFAULT NULL,
-    sys_update_time DATETIME DEFAULT NULL,
+    create_by VARCHAR(64) DEFAULT NULL,
+    modify_by VARCHAR(64) DEFAULT NULL,
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    UNIQUE KEY uq_ai_knowledge_document_version (document_id, version),
-    KEY idx_ai_knowledge_document_version_status (document_id, index_status)
+    UNIQUE KEY uq_ai_knowledge_version_tenant (tenant_id, document_id, version),
+    KEY idx_ai_knowledge_document_version_status (tenant_id, document_id, index_status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='RAG document versions';
 
 CREATE TABLE IF NOT EXISTS ai_knowledge_ingestion_job (
     id BIGINT NOT NULL,
+    tenant_id VARCHAR(64) NOT NULL DEFAULT 'default',
     document_version_id BIGINT NOT NULL,
     index_revision VARCHAR(64) NOT NULL,
     job_type VARCHAR(32) NOT NULL,
@@ -285,53 +299,18 @@ CREATE TABLE IF NOT EXISTS ai_knowledge_ingestion_job (
     error_message TEXT DEFAULT NULL,
     start_time DATETIME(3) DEFAULT NULL,
     finish_time DATETIME(3) DEFAULT NULL,
-    sys_creator VARCHAR(64) DEFAULT NULL,
-    sys_modifier VARCHAR(64) DEFAULT NULL,
-    sys_create_time DATETIME DEFAULT NULL,
-    sys_update_time DATETIME DEFAULT NULL,
+    create_by VARCHAR(64) DEFAULT NULL,
+    modify_by VARCHAR(64) DEFAULT NULL,
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    KEY idx_ai_knowledge_ingestion_job_version (document_version_id),
-    KEY idx_ai_knowledge_ingestion_job_status (status)
+    KEY idx_ai_knowledge_ingestion_job_version (tenant_id, document_version_id),
+    KEY idx_ai_knowledge_ingestion_job_status (tenant_id, status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='RAG ingestion jobs';
-
-
-
-
--- pgsql
-CREATE EXTENSION IF NOT EXISTS vector;
-
-CREATE TABLE IF NOT EXISTS ai_knowledge_chunk
-(
-    id                  BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-
-    knowledge_base_id   BIGINT NOT NULL,
-    document_id         BIGINT NOT NULL,
-    document_no         VARCHAR(100) NOT NULL,
-    document_version_id BIGINT NOT NULL,
-
-    index_revision      INTEGER NOT NULL DEFAULT 1,
-    chunk_no            INTEGER NOT NULL,
-
-    content             TEXT NOT NULL,
-
-    metadata            JSONB,
-
-    embedding           VECTOR(1024),
-
-    status              VARCHAR(16) NOT NULL DEFAULT 'ACTIVE',
-
-    sys_creator         BIGINT,
-    sys_modifier        BIGINT,
-
-    sys_create_time     TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    sys_update_time     TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
-
-CREATE UNIQUE INDEX IF NOT EXISTS uk_ai_knowledge_chunk_document ON ai_knowledge_chunk
-    ( knowledge_base_id, document_id, document_version_id, index_revision, chunk_no );
 -- System identity and authorization (RBAC)
 CREATE TABLE IF NOT EXISTS sys_user (
     id BIGINT NOT NULL,
+    tenant_id VARCHAR(64) NOT NULL DEFAULT 'default',
     username VARCHAR(64) NOT NULL,
     password VARCHAR(100) NOT NULL,
     nickname VARCHAR(64) DEFAULT NULL,
@@ -343,10 +322,10 @@ CREATE TABLE IF NOT EXISTS sys_user (
     status VARCHAR(16) NOT NULL,
     last_login_time DATETIME DEFAULT NULL,
     last_login_ip VARCHAR(64) DEFAULT NULL,
-    sys_creator VARCHAR(64) DEFAULT NULL,
-    sys_modifier VARCHAR(64) DEFAULT NULL,
-    sys_create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    sys_update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    create_by VARCHAR(64) DEFAULT NULL,
+    modify_by VARCHAR(64) DEFAULT NULL,
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uk_sys_user_username (username),
     KEY idx_sys_user_status (status)
@@ -359,10 +338,10 @@ CREATE TABLE IF NOT EXISTS sys_role (
     description VARCHAR(512) DEFAULT NULL,
     role_type VARCHAR(32) NOT NULL,
     status VARCHAR(16) NOT NULL,
-    sys_creator VARCHAR(64) DEFAULT NULL,
-    sys_modifier VARCHAR(64) DEFAULT NULL,
-    sys_create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    sys_update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    create_by VARCHAR(64) DEFAULT NULL,
+    modify_by VARCHAR(64) DEFAULT NULL,
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uk_sys_role_code (role_code),
     KEY idx_sys_role_status (status)
@@ -372,10 +351,10 @@ CREATE TABLE IF NOT EXISTS sys_user_role (
     id BIGINT NOT NULL,
     user_id BIGINT NOT NULL,
     role_id BIGINT NOT NULL,
-    sys_creator VARCHAR(64) DEFAULT NULL,
-    sys_modifier VARCHAR(64) DEFAULT NULL,
-    sys_create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    sys_update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    create_by VARCHAR(64) DEFAULT NULL,
+    modify_by VARCHAR(64) DEFAULT NULL,
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uk_sys_user_role (user_id, role_id),
     KEY idx_sys_user_role_role_id (role_id)
@@ -399,10 +378,10 @@ CREATE TABLE IF NOT EXISTS sys_menu (
     iframe_flag TINYINT(1) NOT NULL DEFAULT 0,
     active_path VARCHAR(256) DEFAULT NULL,
     status VARCHAR(16) NOT NULL,
-    sys_creator VARCHAR(64) DEFAULT NULL,
-    sys_modifier VARCHAR(64) DEFAULT NULL,
-    sys_create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    sys_update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    create_by VARCHAR(64) DEFAULT NULL,
+    modify_by VARCHAR(64) DEFAULT NULL,
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_sys_menu_parent_id (parent_id),
     KEY idx_sys_menu_status (status)
@@ -412,10 +391,10 @@ CREATE TABLE IF NOT EXISTS sys_role_menu (
     id BIGINT NOT NULL,
     role_id BIGINT NOT NULL,
     menu_id BIGINT NOT NULL,
-    sys_creator VARCHAR(64) DEFAULT NULL,
-    sys_modifier VARCHAR(64) DEFAULT NULL,
-    sys_create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    sys_update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    create_by VARCHAR(64) DEFAULT NULL,
+    modify_by VARCHAR(64) DEFAULT NULL,
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uk_sys_role_menu (role_id, menu_id),
     KEY idx_sys_role_menu_menu_id (menu_id)
@@ -429,10 +408,10 @@ CREATE TABLE IF NOT EXISTS sys_button (
     description VARCHAR(512) DEFAULT NULL,
     sort_no INT NOT NULL DEFAULT 0,
     status VARCHAR(16) NOT NULL,
-    sys_creator VARCHAR(64) DEFAULT NULL,
-    sys_modifier VARCHAR(64) DEFAULT NULL,
-    sys_create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    sys_update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    create_by VARCHAR(64) DEFAULT NULL,
+    modify_by VARCHAR(64) DEFAULT NULL,
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uk_sys_button_auth_remark (auth_remark),
     KEY idx_sys_button_menu_id (menu_id),
@@ -443,10 +422,10 @@ CREATE TABLE IF NOT EXISTS sys_role_button (
     id BIGINT NOT NULL,
     role_id BIGINT NOT NULL,
     button_id BIGINT NOT NULL,
-    sys_creator VARCHAR(64) DEFAULT NULL,
-    sys_modifier VARCHAR(64) DEFAULT NULL,
-    sys_create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    sys_update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    create_by VARCHAR(64) DEFAULT NULL,
+    modify_by VARCHAR(64) DEFAULT NULL,
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uk_sys_role_button (role_id, button_id),
     KEY idx_sys_role_button_button_id (button_id)
@@ -454,9 +433,10 @@ CREATE TABLE IF NOT EXISTS sys_role_button (
 
 CREATE TABLE IF NOT EXISTS sys_user_session (
     id BIGINT NOT NULL,
+    tenant_id VARCHAR(64) NOT NULL DEFAULT 'default',
     user_id BIGINT NOT NULL,
-    access_token TEXT NOT NULL,
-    refresh_token TEXT NOT NULL,
+    access_token CHAR(64) NOT NULL COMMENT 'SHA-256 hash of the access token',
+    refresh_token CHAR(64) NOT NULL COMMENT 'SHA-256 hash of the refresh token',
     access_jti VARCHAR(64) DEFAULT NULL,
     refresh_jti VARCHAR(64) DEFAULT NULL,
     login_ip VARCHAR(64) DEFAULT NULL,
@@ -467,11 +447,11 @@ CREATE TABLE IF NOT EXISTS sys_user_session (
     refresh_expire_time DATETIME NOT NULL,
     status VARCHAR(16) NOT NULL,
     logout_time DATETIME DEFAULT NULL,
-    sys_creator VARCHAR(64) DEFAULT NULL,
-    sys_modifier VARCHAR(64) DEFAULT NULL,
-    sys_create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    sys_update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    create_by VARCHAR(64) DEFAULT NULL,
+    modify_by VARCHAR(64) DEFAULT NULL,
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    KEY idx_sys_user_session_user_id (user_id),
+    KEY idx_sys_user_session_tenant_user (tenant_id, user_id),
     KEY idx_sys_user_session_status_expire (status, expire_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='User login session';

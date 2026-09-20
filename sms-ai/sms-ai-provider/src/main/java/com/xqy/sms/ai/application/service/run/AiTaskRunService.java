@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.xqy.sms.ai.infrastructure.persistence.mapper.AiTaskRunMapper;
 import com.xqy.sms.ai.infrastructure.persistence.mapper.AiTaskStepMapper;
 import com.xqy.sms.ai.domain.model.AiTaskRunStatus;
+import com.xqy.sms.ai.api.service.AiRunAccessDeniedException;
+import com.xqy.sms.ai.api.service.AiRunNotFoundException;
 import com.xqy.sms.common.entity.AiTaskRun;
 import com.xqy.sms.common.entity.AiTaskStep;
 import org.springframework.dao.DuplicateKeyException;
@@ -24,19 +26,21 @@ public class AiTaskRunService {
         this.stepMapper = stepMapper;
     }
 
-    public AiTaskRun createOrReuse(String requestId, String userId, String sessionId, String question,
+    public AiTaskRun createOrReuse(String requestId, String tenantId, String userId, String sessionId, String question,
                                    String modelAlias, String idempotencyKey) {
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
-            AiTaskRun existing = findByIdempotencyKey(idempotencyKey);
+            AiTaskRun existing = findByIdempotencyKey(tenantId, idempotencyKey);
             if (existing != null) {
-                if (java.util.Objects.equals(existing.getUserId(), userId)
+                if (java.util.Objects.equals(existing.getTenantId(), tenantId)
+                        && java.util.Objects.equals(existing.getUserId(), userId)
                         && java.util.Objects.equals(existing.getSessionId(), sessionId)) return existing;
-                throw new RunOwnershipException();
+                throw new AiRunAccessDeniedException();
             }
         }
         AiTaskRun run = new AiTaskRun();
         run.setRunId(UUID.randomUUID().toString());
         run.setRequestId(requestId);
+        run.setTenantId(requiredTenant(tenantId));
         run.setUserId(userId);
         run.setSessionId(sessionId);
         run.setRunType("CHAT");
@@ -51,7 +55,7 @@ public class AiTaskRunService {
             runMapper.insert(run);
             return run;
         } catch (DuplicateKeyException exception) {
-            AiTaskRun existing = findByIdempotencyKey(idempotencyKey);
+            AiTaskRun existing = findByIdempotencyKey(tenantId, idempotencyKey);
             if (existing != null) return existing;
             throw exception;
         }
@@ -59,7 +63,7 @@ public class AiTaskRunService {
 
     public AiTaskRun requireRun(String runId) {
         AiTaskRun run = findByRunId(runId);
-        if (run == null) throw new IllegalArgumentException("AI task run not found: " + runId);
+        if (run == null) throw new AiRunNotFoundException(runId);
         return run;
     }
 
@@ -153,16 +157,21 @@ public class AiTaskRunService {
         updateRun(runId, AiTaskRunStatus.FAILED, code, message, run -> { });
     }
 
-    public void cancel(String runId, String userId) {
-        AiTaskRun run = requireRun(runId);
-        if (!java.util.Objects.equals(run.getUserId(), userId)) {
-            throw new RunOwnershipException();
-        }
+    public void cancel(String runId, String tenantId, String userId) {
+        AiTaskRun run = requireOwnedRun(runId, tenantId, userId);
         if (AiTaskRunStatus.isTerminal(run.getStatus())) return;
         run.setCancelRequest(true);
         run.setCancelRequestTime(LocalDateTime.now());
         run.setStatus(AiTaskRunStatus.CANCEL_REQUESTED);
         runMapper.updateById(run);
+    }
+
+    public AiTaskRun requireOwnedRun(String runId, String tenantId, String userId) {
+        AiTaskRun run = requireRun(runId);
+        if (!java.util.Objects.equals(run.getTenantId(), tenantId) || !java.util.Objects.equals(run.getUserId(), userId)) {
+            throw new AiRunAccessDeniedException();
+        }
+        return run;
     }
 
     public boolean isCancellationRequested(String runId) {
@@ -198,9 +207,10 @@ public class AiTaskRunService {
         runMapper.updateById(run);
     }
 
-    private AiTaskRun findByIdempotencyKey(String key) {
+    private AiTaskRun findByIdempotencyKey(String tenantId, String key) {
         return key == null || key.isBlank() ? null : runMapper.selectOne(
-                new LambdaQueryWrapper<AiTaskRun>().eq(AiTaskRun::getIdempotencyKey, key));
+                new LambdaQueryWrapper<AiTaskRun>().eq(AiTaskRun::getTenantId, requiredTenant(tenantId))
+                        .eq(AiTaskRun::getIdempotencyKey, key));
     }
 
     private void updateRun(String runId, String status, String errorCode, String errorMessage,
@@ -217,6 +227,9 @@ public class AiTaskRunService {
     private String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
     }
+    private String requiredTenant(String value) {
+        if (value == null || value.isBlank()) throw new IllegalArgumentException("tenantId must not be blank");
+        return value.trim();
+    }
 
-    public static class RunOwnershipException extends RuntimeException { }
 }

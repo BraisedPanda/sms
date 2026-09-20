@@ -29,7 +29,9 @@ public class AuthService {
     public AuthenticatedUser authenticate(String token) {
         JwtUserContext context = jwtTokenService.verifyAccessToken(token);
         SystemAuthModels.Principal principal = systemAuthService.authenticate(context.userId(), context.sessionId(), context.tokenId());
-        return new AuthenticatedUser(principal.userId(), principal.sessionId(), principal.tokenId(), principal.roles(), principal.authorities());
+        if (!java.util.Objects.equals(context.tenantId(), principal.tenantId())) throw new InvalidCredentialsException();
+        return new AuthenticatedUser(principal.userId(), principal.sessionId(), principal.tokenId(), principal.tenantId(),
+                principal.roles(), principal.authorities());
     }
     public UserInfo userInfo(Long userId) { SystemAuthModels.UserInfo info = systemAuthService.userInfo(userId); return new UserInfo(info.buttons(), info.roles(), info.userId(), info.userName(), info.email(), info.avatar()); }
     public void logout(Long sessionId, String tokenId) { systemAuthService.logout(sessionId, tokenId); }
@@ -37,7 +39,8 @@ public class AuthService {
     public SystemAuthModels.UserPage users(String username, String status, long current, long size) { return systemAuthService.users(username, status, current, size); }
     public java.util.List<SystemAuthModels.Menu> menus(Long userId) { return systemAuthService.menus(userId); }
     public record TokenPair(String token, String refreshToken) { }
-    public record AuthenticatedUser(Long userId, Long sessionId, String tokenId, java.util.List<String> roles, java.util.List<String> authorities) { }
+    public record AuthenticatedUser(Long userId, Long sessionId, String tokenId, String tenantId,
+                                    java.util.List<String> roles, java.util.List<String> authorities) { }
     public record UserInfo(java.util.List<String> buttons, java.util.List<String> roles, Long userId, String userName, String email, String avatar) { }
     public static class InvalidCredentialsException extends RuntimeException { }
 }

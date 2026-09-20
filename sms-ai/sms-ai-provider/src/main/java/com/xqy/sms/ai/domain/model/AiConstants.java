@@ -17,12 +17,13 @@ public interface AiConstants {
         String CHAT = "chat";
     }
 
-    interface SSE_EVENT {
+    interface STREAM_EVENT {
         String START = "start";
         String PLANNING = "planning";
         String EXECUTING = "executing";
         String GENERATING = "generating";
         String TOKEN = "token";
+        String SOURCES = "sources";
         String DONE = "done";
         String ERROR = "error";
     }

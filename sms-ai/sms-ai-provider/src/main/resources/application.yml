@@ -26,6 +26,8 @@ server:
   port: ${AI_SERVER_PORT:9091}
 
 sms:
+  internal-rpc:
+    secret: ${INTERNAL_RPC_SECRET}
   ai:
     embedding:
       endpoint: ${EMBEDDING_ENDPOINT}
@@ -49,5 +51,5 @@ sms:
       step-timeout-ms: ${AI_WORKFLOW_STEP_TIMEOUT_MS:30000}
       business-result-ttl-minutes: ${AI_WORKFLOW_BUSINESS_RESULT_TTL_MINUTES:30}
     task-recovery-delay-ms: ${AI_TASK_RECOVERY_DELAY_MS:10000}
-    sse-emitter-timeout-millis: ${AI_SSE_EMITTER_TIMEOUT_MILLIS:120000}
+    stream-event-ttl-minutes: ${AI_STREAM_EVENT_TTL_MINUTES:5}
     chat-memory-max-messages: ${AI_CHAT_MEMORY_MAX_MESSAGES:40}

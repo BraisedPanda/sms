@@ -1,5 +1,6 @@
 package com.xqy.sms.knowledge.api.model;
 
+import com.xqy.sms.common.security.rpc.InternalCallContext;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,6 +18,8 @@ public class KnowledgeVectorQuery implements Serializable {
     private Double similarityThreshold;
     private Map<String, Object> filter = new HashMap<>();
     private String collectionName;
+    private String tenantId;
+    private InternalCallContext callerContext;
 
     public Long getKnowledgeBaseId() {
         return knowledgeBaseId;
@@ -73,4 +76,8 @@ public class KnowledgeVectorQuery implements Serializable {
     public void setCollectionName(String collectionName) {
         this.collectionName = collectionName;
     }
+    public String getTenantId() { return tenantId; }
+    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
+    public InternalCallContext getCallerContext() { return callerContext; }
+    public void setCallerContext(InternalCallContext callerContext) { this.callerContext = callerContext; }
 }

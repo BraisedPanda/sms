@@ -11,17 +11,17 @@ public class BaseEntity {
     @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
-    @TableField("sys_creator")
-    private String sysCreator;
+    @TableField("create_by")
+    private String createBy;
 
-    @TableField("sys_modifier")
-    private String sysModifier;
+    @TableField("modify_by")
+    private String modifyBy;
 
-    @TableField(value = "sys_create_time", fill = FieldFill.INSERT)
-    private LocalDateTime sysCreateTime;
+    @TableField(value = "create_time", fill = FieldFill.INSERT)
+    private LocalDateTime createTime;
 
-    @TableField(value = "sys_update_time", fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime sysUpdateTime;
+    @TableField(value = "update_time", fill = FieldFill.INSERT_UPDATE)
+    private LocalDateTime updateTime;
 
     public Long getId() {
         return id;
@@ -31,36 +31,36 @@ public class BaseEntity {
         this.id = id;
     }
 
-    public String getSysCreator() {
-        return sysCreator;
+    public String getCreateBy() {
+        return createBy;
     }
 
-    public void setSysCreator(String sysCreator) {
-        this.sysCreator = sysCreator;
+    public void setCreateBy(String createBy) {
+        this.createBy = createBy;
     }
 
-    public String getSysModifier() {
-        return sysModifier;
+    public String getModifyBy() {
+        return modifyBy;
     }
 
-    public void setSysModifier(String sysModifier) {
-        this.sysModifier = sysModifier;
+    public void setModifyBy(String modifyBy) {
+        this.modifyBy = modifyBy;
     }
 
-    public LocalDateTime getSysCreateTime() {
-        return sysCreateTime;
+    public LocalDateTime getCreateTime() {
+        return createTime;
     }
 
-    public void setSysCreateTime(LocalDateTime sysCreateTime) {
-        this.sysCreateTime = sysCreateTime;
+    public void setCreateTime(LocalDateTime createTime) {
+        this.createTime = createTime;
     }
 
-    public LocalDateTime getSysUpdateTime() {
-        return sysUpdateTime;
+    public LocalDateTime getUpdateTime() {
+        return updateTime;
     }
 
-    public void setSysUpdateTime(LocalDateTime sysUpdateTime) {
-        this.sysUpdateTime = sysUpdateTime;
+    public void setUpdateTime(LocalDateTime updateTime) {
+        this.updateTime = updateTime;
     }
 
 }
