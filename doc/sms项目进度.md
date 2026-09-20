@@ -94,7 +94,8 @@ SMS 的目标是建设面向企业业务的 AI 平台，而非单次聊天接口
 
 - `sms-ai` 已完成应用层、领域层、基础设施层和接口层分包。
 - AI 请求日志和工具执行日志实体已迁入 `sms-common-persistent`。
-- 共享实体审计字段已统一为 `createBy`、`modifyBy`、`createTime`、`updateTime`，数据库列统一为 `create_by`、`modify_by`、`create_time`、`update_time`；MySQL 与 PostgreSQL 均提供幂等迁移脚本。
+- 共享实体审计字段已统一为 `createBy`、`modifyBy`、`createTime`、`updateTime`，数据库列统一为 `create_by`、`modify_by`、`create_time`、`update_time`；MySQL 由数据库默认值和 `ON UPDATE` 维护审计时间，避免无 `MetaObjectHandler` 时写入 NULL；MySQL 与 PostgreSQL 均提供幂等迁移脚本。
+- MySQL 全新环境只需依次执行 `doc/sql/table_init.sql` 和 `doc/sql/data_init.sql`：后者已整合 Admin/RBAC/菜单、模型、Prompt、工具、学生样例和显式租户知识样例，不再依赖额外的系统初始化脚本。
 - 根目录 `.env` 仅保留密钥、账号密码和部署环境地址；稳定参数默认值已回归各服务 YAML，并保留 `${ENV:default}` 覆盖形式。
 - 环境变量已去除 `SMS_` 前缀；`.env.example` 对敏感凭据保持空白，对本地环境地址提供可替换样例。
 
@@ -194,6 +195,8 @@ pnpm run build
 尚未通过的外部集成：PostgreSQL/pgvector 连接被拒绝；embedding 上游对 `text-embedding-3-small` 返回 `model_not_found`，且 `/models` 未返回 embedding 候选。因此真实文档入库、重复导入、召回质量和来源端到端验收仍需在可用模型与 PostgreSQL 服务就绪后执行。Redis、Nacos、Milvus 和 HTTP/SSE 端到端测试本轮未执行。
 
 审计列改名后的 Student、AI、System、Knowledge 及直接依赖模块编译通过。迁移脚本已生成但未对现有 MySQL/PostgreSQL 实例执行，部署新版服务前需先执行对应数据库脚本。
+
+最新 MySQL 引导脚本已在隔离临时库连续执行两遍：21 张表和 20 个 Java 映射实体字段一致，84 个共享审计列齐全，关键唯一/恢复索引、种子数量、租户关联和 Admin BCrypt 密码均验证通过。
 
 ## 8. 阶段验收标准
 

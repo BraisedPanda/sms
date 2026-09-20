@@ -13,6 +13,7 @@
 
 ### 调整
 
+- 依据最新 Java 实体和查询链重整 `table_init.sql`、`data_init.sql`：21 张 MySQL 表统一由数据库维护非空审计时间，移除无处理器支撑的 MyBatis-Plus `FieldFill` 标记，补齐任务恢复索引和会话令牌哈希列；引导数据整合 Admin/RBAC/菜单、模型、Prompt、工具、学生样例及显式租户知识样例，修正学生工具字段与规划 Prompt 的契约偏差。
 - 共享 `BaseEntity` 审计属性由 `sysCreator/sysModifier/sysCreateTime/sysUpdateTime` 统一为 `createBy/modifyBy/createTime/updateTime`，MyBatis 映射及 MySQL/pgvector SQL 列同步改为 `create_by/modify_by/create_time/update_time`；新增现有 MySQL、PostgreSQL 数据库的幂等列重命名脚本。
 - 用户与会话租户贯穿登录、刷新、JWT、Web principal、run、知识库、工具日志和向量检索；run 幂等键及知识库唯一索引改为租户联合唯一。
 - 知识库 CRUD 和向量查询要求签名调用上下文并强制租户条件；入库 SQL 同时校验知识库、文档详情和版本的租户一致性。
