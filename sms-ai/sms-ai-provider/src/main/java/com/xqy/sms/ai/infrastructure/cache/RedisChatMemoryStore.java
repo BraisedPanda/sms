@@ -43,6 +43,10 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
         redisTemplate.opsForValue().set(key(memoryId), messagesJson);
     }
 
+    public void initializeIfAbsent(Object memoryId, List<ChatMessage> messages) {
+        if (!messages.isEmpty()) redisTemplate.opsForValue().setIfAbsent(key(memoryId), ChatMessageSerializer.messagesToJson(messages));
+    }
+
     @Override
     public void deleteMessages(Object memoryId) {
         redisTemplate.delete(key(memoryId));

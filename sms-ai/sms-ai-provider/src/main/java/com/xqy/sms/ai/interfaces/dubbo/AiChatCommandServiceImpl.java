@@ -22,13 +22,19 @@ public class AiChatCommandServiceImpl implements AiChatCommandService {
     private final ConversationApplicationService conversation;
     private final AiTaskRunService runs;
     private final InternalCallSigner internalCallSigner;
+    private final com.xqy.sms.ai.api.service.AiOperationsService operations;
     public AiChatCommandServiceImpl(ConversationApplicationService conversation, AiTaskRunService runs,
-                                    @Value("${sms.internal-rpc.secret}") String internalRpcSecret) {
+                                    @Value("${sms.internal-rpc.secret}") String internalRpcSecret,
+                                    com.xqy.sms.ai.api.service.AiOperationsService operations) {
         this.conversation = conversation;
         this.runs = runs;
         this.internalCallSigner = new InternalCallSigner(internalRpcSecret);
+        this.operations = operations;
     }
     @Override public void submit(AiChatCommand command) {
+        submitRun(command);
+    }
+    @Override public java.util.Map<String, Object> submitRun(AiChatCommand command) {
         if (command == null) throw new IllegalArgumentException("chat command must not be null");
         InternalCallContext context = authenticate(command.callerContext());
         if (!java.util.Objects.equals(context.userId(), command.userId())
@@ -37,16 +43,22 @@ public class AiChatCommandServiceImpl implements AiChatCommandService {
             throw new InternalCallSigner.InternalCallAuthenticationException();
         }
         AiTaskRequest request = new AiTaskRequest(); request.setQuestion(command.question()); request.setAlias(command.alias()); request.setIdempotencyKey(command.idempotencyKey());
+        if (command.getConversationId() != null) operations.requireConversation(command.getConversationId(), context);
+        request.setConversationId(command.getConversationId());
         log.info("rpc_audit action=chat_submit caller={} tenant={} user={} requestId={}", context.callerService(),
                 context.tenantId(), context.userId(), context.requestId());
-        conversation.start(request, new JwtUserContext(command.userId(), command.sessionId(), context.requestId(),
+        com.xqy.sms.common.entity.AiTaskRun run = conversation.start(request, new JwtUserContext(command.userId(), command.sessionId(), context.requestId(),
                 context.tenantId(), List.of(), List.of(), List.of(), "internal"), command.streamKey());
+        java.util.Map<String, Object> receipt = new java.util.LinkedHashMap<>();
+        receipt.put("runId", run.getRunId()); receipt.put("status", run.getStatus());
+        receipt.put("conversationId", run.getConversationId() == null ? null : run.getConversationId().toString());
+        return receipt;
     }
     @Override public void cancel(String runId, InternalCallContext callerContext) {
         InternalCallContext context = authenticate(callerContext);
         log.info("rpc_audit action=chat_cancel caller={} tenant={} user={} requestId={}", context.callerService(),
                 context.tenantId(), context.userId(), context.requestId());
-        runs.cancel(runId, context.tenantId(), String.valueOf(context.userId()));
+        conversation.cancel(runId, new JwtUserContext(context.userId(), context.sessionId(), context.requestId(), context.tenantId(), List.of(), List.of(), List.of(), "internal"));
     }
     @Override public AiRunView getRun(String runId, InternalCallContext callerContext) {
         InternalCallContext context = authenticate(callerContext);
@@ -58,6 +70,7 @@ public class AiChatCommandServiceImpl implements AiChatCommandService {
     }
     private InternalCallContext authenticate(InternalCallContext context) {
         internalCallSigner.verify(context, "sms-web-bff");
+        operations.requireCaller(context);
         return context;
     }
 }

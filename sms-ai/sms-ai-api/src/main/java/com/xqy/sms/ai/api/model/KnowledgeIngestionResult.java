@@ -8,6 +8,8 @@ public class KnowledgeIngestionResult implements Serializable {
     private int selected;
     private int imported;
     private int indexRevision;
+    private java.util.List<String> jobIds = java.util.List.of();
+    private String status;
 
     public KnowledgeIngestionResult() { }
 
@@ -23,6 +25,12 @@ public class KnowledgeIngestionResult implements Serializable {
     public void setImported(int imported) { this.imported = imported; }
     public int getIndexRevision() { return indexRevision; }
     public void setIndexRevision(int indexRevision) { this.indexRevision = indexRevision; }
+    public java.util.List<String> getJobIds() { return jobIds; }
+    public java.util.List<String> jobIds() { return jobIds; }
+    public void setJobIds(java.util.List<String> jobIds) { this.jobIds = jobIds; }
+    public String getStatus() { return status; }
+    public String status() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
     /** Compatibility accessors retained for existing RPC callers. */
     public int selected() { return selected; }

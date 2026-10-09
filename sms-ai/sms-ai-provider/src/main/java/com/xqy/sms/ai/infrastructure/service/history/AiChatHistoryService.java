@@ -24,10 +24,10 @@ public class AiChatHistoryService {
     }
 
     @Transactional
-    public void recordUserMessage(AiTaskRun run) {
+    public Long recordUserMessage(AiTaskRun run) {
         validateOwner(run);
         if (blank(run.getQuestion())) throw new IllegalArgumentException("chat question must not be blank");
-        persist(run, "user", run.getQuestion());
+        return persist(run, "user", run.getQuestion());
     }
 
     @Transactional
@@ -37,12 +37,13 @@ public class AiChatHistoryService {
         persist(run, "assistant", content);
     }
 
-    private void persist(AiTaskRun run, String role, String content) {
+    private Long persist(AiTaskRun run, String role, String content) {
         AiChatConversation conversation = findOrCreate(run);
+        run.setConversationId(conversation.getId());
         if (messageMapper.exists(new LambdaQueryWrapper<AiChatMessage>()
                 .eq(AiChatMessage::getConversationId, conversation.getId())
                 .eq(AiChatMessage::getRunId, run.getRunId())
-                .eq(AiChatMessage::getRole, role))) return;
+                .eq(AiChatMessage::getRole, role))) return conversation.getId();
         AiChatMessage message = new AiChatMessage();
         message.setConversationId(conversation.getId());
         message.setTenantId(run.getTenantId());
@@ -55,9 +56,29 @@ public class AiChatHistoryService {
         messageMapper.insert(message);
         conversation.setLastMessageAt(LocalDateTime.now());
         conversationMapper.updateById(conversation);
+        return conversation.getId();
+    }
+
+    public java.util.List<dev.langchain4j.data.message.ChatMessage> recentMessages(AiTaskRun run, int limit) {
+        validateOwner(run);
+        if (run.getConversationId() == null) return java.util.List.of();
+        var rows = messageMapper.selectList(new LambdaQueryWrapper<AiChatMessage>()
+                .eq(AiChatMessage::getConversationId, run.getConversationId())
+                .eq(AiChatMessage::getTenantId, run.getTenantId()).eq(AiChatMessage::getUserId, run.getUserId())
+                .ne(AiChatMessage::getRunId, run.getRunId())
+                .orderByDesc(AiChatMessage::getSequenceNo).last("LIMIT " + Math.max(1, Math.min(limit, 100))));
+        java.util.Collections.reverse(rows);
+        return rows.stream().map(message -> (dev.langchain4j.data.message.ChatMessage)
+                ("assistant".equals(message.getRole()) ? dev.langchain4j.data.message.AiMessage.from(message.getContent())
+                : dev.langchain4j.data.message.UserMessage.from(message.getContent()))).toList();
     }
 
     private AiChatConversation findOrCreate(AiTaskRun run) {
+        if (run.getConversationId() != null) {
+            AiChatConversation selected = conversationMapper.lockByIdAndOwner(run.getConversationId(), run.getTenantId(), run.getUserId());
+            if (selected == null) throw new com.xqy.sms.common.exception.ManagementNotFoundException();
+            return selected;
+        }
         AiChatConversation conversation = new AiChatConversation();
         conversation.setId(IdWorker.getId());
         conversation.setTenantId(run.getTenantId());

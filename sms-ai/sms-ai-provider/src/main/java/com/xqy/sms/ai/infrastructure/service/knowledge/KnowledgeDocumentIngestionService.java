@@ -23,6 +23,7 @@ public class KnowledgeDocumentIngestionService {
     private final int defaultLimit;
     private final int maxLimit;
     private final int defaultIndexRevision;
+    private final org.springframework.transaction.support.TransactionTemplate vectorTransaction;
 
     public KnowledgeDocumentIngestionService(
             JdbcTemplate sourceJdbcTemplate,
@@ -45,9 +46,15 @@ public class KnowledgeDocumentIngestionService {
         DriverManagerDataSource dataSource = new DriverManagerDataSource(vectorUrl, vectorUsername, vectorPassword);
         dataSource.setDriverClassName("org.postgresql.Driver");
         this.vectorJdbcTemplate = new JdbcTemplate(dataSource);
+        this.vectorTransaction = new org.springframework.transaction.support.TransactionTemplate(
+                new org.springframework.jdbc.datasource.DataSourceTransactionManager(dataSource));
     }
 
     public IngestionResult ingest(IngestionRequest request) {
+        return ingestAfter(request, 0);
+    }
+
+    public IngestionResult ingestAfter(IngestionRequest request, int afterChunkNo) {
         int limit = request == null || request.limit() == null ? defaultLimit : request.limit();
         if (limit <= 0) throw new IllegalArgumentException("limit must be positive");
         limit = Math.min(limit, maxLimit);
@@ -58,7 +65,7 @@ public class KnowledgeDocumentIngestionService {
             throw new IllegalArgumentException("tenantId must not be blank");
         }
         List<StagingDetail> details = loadDetails(request.knowledgeBaseId(),
-                request.documentVersionId(), request.tenantId(), limit);
+                request.documentVersionId(), request.tenantId(), limit, afterChunkNo);
         if (details.isEmpty()) return new IngestionResult(0, 0, indexRevision);
 
         List<List<Float>> embeddings = embeddingService.embedAll(
@@ -72,7 +79,7 @@ public class KnowledgeDocumentIngestionService {
         return new IngestionResult(details.size(), imported, indexRevision);
     }
 
-    private List<StagingDetail> loadDetails(Long knowledgeBaseId, Long documentVersionId, String tenantId, int limit) {
+    private List<StagingDetail> loadDetails(Long knowledgeBaseId, Long documentVersionId, String tenantId, int limit, int afterChunkNo) {
         StringBuilder sql = new StringBuilder("""
                 SELECT d.knowledge_base_id, d.id AS document_id, d.document_no,
                        v.id AS document_version_id, x.chunk_no, x.content, x.metadata
@@ -80,10 +87,11 @@ public class KnowledgeDocumentIngestionService {
                   JOIN ai_knowledge_document d ON d.id = x.document_id
                   JOIN ai_knowledge_document_version v
                     ON v.id = x.document_version_id AND v.document_id = d.id AND v.tenant_id = d.tenant_id
-                 WHERE d.tenant_id = ? AND x.tenant_id = d.tenant_id
+                 WHERE d.tenant_id = ? AND x.tenant_id = d.tenant_id AND d.status='ACTIVE' AND x.chunk_no>?
                 """);
         List<Object> args = new ArrayList<>();
         args.add(tenantId);
+        args.add(afterChunkNo);
         if (knowledgeBaseId != null) {
             sql.append(" AND d.knowledge_base_id = ?");
             args.add(knowledgeBaseId);
@@ -112,14 +120,25 @@ public class KnowledgeDocumentIngestionService {
         String sql = "INSERT INTO " + vectorTable + " "
                 + "(tenant_id, knowledge_base_id, document_id, document_no, document_version_id, index_revision, "
                 + "chunk_no, content, metadata, embedding, status) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS jsonb), CAST(? AS vector), 'ACTIVE') "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS jsonb), CAST(? AS vector), 'STAGING') "
                 + "ON CONFLICT (tenant_id, knowledge_base_id, document_id, document_version_id, index_revision, chunk_no) "
                 + "DO UPDATE SET document_no = EXCLUDED.document_no, content = EXCLUDED.content, "
-                + "metadata = EXCLUDED.metadata, embedding = EXCLUDED.embedding, status = 'ACTIVE', "
+                + "metadata = EXCLUDED.metadata, embedding = EXCLUDED.embedding, "
                 + "update_time = CURRENT_TIMESTAMP";
         vectorJdbcTemplate.update(sql,
                 tenantId, detail.knowledgeBaseId(), detail.documentId(), detail.documentNo(), detail.documentVersionId(),
                 indexRevision, detail.chunkNo(), detail.content(), metadataJson(detail), vectorLiteral(embedding));
+    }
+
+    /** Atomically switches the searchable revision after every staging chunk was imported. */
+    public void activate(Long documentVersionId, int indexRevision, String tenantId) {
+        List<Long> documents = sourceJdbcTemplate.queryForList("SELECT document_id FROM ai_knowledge_document_version WHERE id=? AND tenant_id=?", Long.class, documentVersionId, tenantId);
+        if (documents.isEmpty()) throw new IllegalArgumentException("文档版本不存在");
+        vectorTransaction.executeWithoutResult(transaction -> {
+            vectorJdbcTemplate.update("UPDATE " + vectorTable + " SET status='INACTIVE',update_time=CURRENT_TIMESTAMP WHERE tenant_id=? AND document_id=? AND status='ACTIVE'", tenantId, documents.getFirst());
+            int activated = vectorJdbcTemplate.update("UPDATE " + vectorTable + " SET status='ACTIVE',update_time=CURRENT_TIMESTAMP WHERE tenant_id=? AND document_version_id=? AND index_revision=?", tenantId, documentVersionId, indexRevision);
+            if (activated == 0) throw new IllegalStateException("此索引没有已导入的分块");
+        });
     }
 
     private String metadataJson(StagingDetail detail) {

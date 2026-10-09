@@ -88,31 +88,54 @@ axiosInstance.interceptors.response.use(
     const { code, msg } = response.data
     // 后端业务成功码为 0，兼容现有使用 HTTP 风格 200 的接口
     if (code === 0 || code === ApiStatus.success) return response
-    if (code === ApiStatus.unauthorized) return refreshAndRetry(response.config as ExtendedAxiosRequestConfig, msg)
+    if (code === ApiStatus.unauthorized)
+      return refreshAndRetry(response.config as ExtendedAxiosRequestConfig, msg)
     throw createHttpError(msg || $t('httpMsg.requestFailed'), code)
   },
   async (error) => {
-    if (error.response?.status === ApiStatus.unauthorized) return refreshAndRetry(error.config as ExtendedAxiosRequestConfig)
+    if (error.response?.status === ApiStatus.unauthorized)
+      return refreshAndRetry(error.config as ExtendedAxiosRequestConfig)
     return Promise.reject(handleError(error))
   }
 )
 
 let refreshPromise: Promise<void> | null = null
 
-async function refreshAndRetry(config: ExtendedAxiosRequestConfig, message?: string): Promise<AxiosResponse<BaseResponse>> {
-  if (config.skipAuthRefresh || config._retried || !useUserStore().refreshToken) return handleUnauthorizedError(message)
+/** REST and streaming fetch requests share one rotating refresh-token request. */
+export async function refreshAccessToken(): Promise<void> {
+  if (!useUserStore().refreshToken) return handleUnauthorizedError()
+  if (!refreshPromise) {
+    refreshPromise = axiosInstance
+      .post<BaseResponse<Api.Auth.LoginResponse>>(
+        '/api/auth/refresh',
+        { refreshToken: useUserStore().refreshToken },
+        { skipAuthRefresh: true } as ExtendedAxiosRequestConfig
+      )
+      .then((response) => {
+        if (response.data.code !== 0 && response.data.code !== ApiStatus.success)
+          throw new Error(response.data.msg)
+        useUserStore().setToken(response.data.data.token, response.data.data.refreshToken)
+      })
+      .finally(() => {
+        refreshPromise = null
+      })
+  }
+  try {
+    await refreshPromise
+  } catch {
+    return handleUnauthorizedError()
+  }
+}
+
+async function refreshAndRetry(
+  config: ExtendedAxiosRequestConfig,
+  message?: string
+): Promise<AxiosResponse<BaseResponse>> {
+  if (config.skipAuthRefresh || config._retried || !useUserStore().refreshToken)
+    return handleUnauthorizedError(message)
   config._retried = true
   try {
-    if (!refreshPromise) {
-      refreshPromise = axiosInstance
-        .post<BaseResponse<Api.Auth.LoginResponse>>('/api/auth/refresh', { refreshToken: useUserStore().refreshToken }, { skipAuthRefresh: true } as ExtendedAxiosRequestConfig)
-        .then((response) => {
-          if (response.data.code !== 0 && response.data.code !== ApiStatus.success) throw new Error(response.data.msg)
-          useUserStore().setToken(response.data.data.token, response.data.data.refreshToken)
-        })
-        .finally(() => { refreshPromise = null })
-    }
-    await refreshPromise
+    await refreshAccessToken()
     return axiosInstance.request<BaseResponse>(config)
   } catch {
     return handleUnauthorizedError(message)

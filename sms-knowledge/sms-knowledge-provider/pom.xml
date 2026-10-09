@@ -12,6 +12,8 @@
     <artifactId>sms-knowledge-provider</artifactId>
     <name>sms-knowledge-provider</name>
     <dependencies>
+        <dependency><groupId>com.xqy</groupId><artifactId>sms-system-api</artifactId></dependency>
+        <dependency><groupId>org.apache.pdfbox</groupId><artifactId>pdfbox</artifactId><version>3.0.8</version></dependency>
         <dependency>
             <groupId>com.xqy</groupId>
             <artifactId>sms-knowledge-api</artifactId>

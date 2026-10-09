@@ -56,7 +56,7 @@ export const templateRoutes: AppRouteRecord = {
       meta: {
         title: 'menus.template.chat',
         icon: 'ri:message-3-line',
-        keepAlive: true
+        keepAlive: false
       }
     },
     {

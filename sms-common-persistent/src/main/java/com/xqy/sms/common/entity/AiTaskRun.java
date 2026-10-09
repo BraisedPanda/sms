@@ -19,6 +19,8 @@ public class AiTaskRun extends CommonEntity implements Serializable {
     private String userId;
     @TableField("session_id")
     private String sessionId;
+    @TableField("stream_key") private String streamKey;
+    @TableField("conversation_id") private Long conversationId;
     @TableField("run_type")
     private String runType;
     private String status;
@@ -56,6 +58,10 @@ public class AiTaskRun extends CommonEntity implements Serializable {
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }
     public String getSessionId() { return sessionId; }
+    public String getStreamKey() { return streamKey; }
+    public void setStreamKey(String streamKey) { this.streamKey = streamKey; }
+    public Long getConversationId() { return conversationId; }
+    public void setConversationId(Long conversationId) { this.conversationId = conversationId; }
     public void setSessionId(String sessionId) { this.sessionId = sessionId; }
     public String getRunType() { return runType; }
     public void setRunType(String runType) { this.runType = runType; }

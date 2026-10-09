@@ -2,6 +2,37 @@
 
 本文档记录 SMS 项目的重要变更。
 
+## 2026-10-09
+
+### 新增
+
+- 新增 `AiChatConversation`、`AiChatMessage`、两张聊天历史表及 Mapper/写入服务；工作流记录用户问题和完整助手回答，使用事务、会话行锁与唯一约束处理排序和去重。
+- 补齐 `data_init.sql` 的 77 个菜单和 50 个按钮权限，向 `R_SUPER` 全量授权；增加知识库/文档/入库任务、设备会话和 AI 运营菜单及路由一致性校验。
+- 新增 System 管理 RPC/REST 和前端 CRUD/授权页面，支持用户、角色、菜单、按钮及本人/租户设备管理；密码使用 BCrypt，设备响应隐藏 token/JTI/hash。
+- 新增本人对话列表、消息分页、run 快照及租户 AI run/step/工具日志查询；聊天可恢复跨登录上下文和未完成任务。
+- 新增文档上传/解析、FIXED/PARAGRAPH Unicode 切分、策略快照、内容去重和版本管理，支持 4MB 内 UTF-8 文本、DOCX、文字型 PDF，限制外部实体及解压大小。
+- 新增 MySQL 持久化异步入库队列，支持租约、worker fencing、分批 embedding、进度、取消、失败重试、超时续执行与成功索引切换/回退。
+- 新增 `2026-10-09_product_operations.sql` 幂等 MySQL 升级脚本及 `verify-product-operations.ps1` 隔离验证脚本；新增 `doc/product-operations.md` 使用和部署说明。
+- 补充真实 MySQL 权限/历史/上传/队列测试、SSE UTF-8/续读、模型流取消、Hessian2 嵌套分页、前端传输和令牌并发刷新回归。
+
+### 调整
+
+- 认证、AI 和内部签名 RPC DTO 从 record 改为带公开无参构造器的可序列化 Java Bean，保留原构造器及 `token()` 等访问方式。
+- 共享持久化基类 `BaseEntity` 重命名为 `CommonEntity`，保留主键与审计映射并实现 `Serializable`。
+- 根目录 `.env` 已配置 `INTERNAL_RPC_SECRET`；各 Provider 补充不同启动目录的环境导入，Dubbo 端口分配为 Student 20880、Knowledge 20881、System 20882、AI 20883，五个应用关闭 QoS。
+- 聊天先取得 runId 再订阅 SSE；流式 Bearer 请求与 REST 共用刷新 Promise，支持 Redis 游标重连、过期快照、页面刷新恢复和失败重新生成。
+- run 终态使用原子更新，取消请求主动调用上游 StreamingHandle，忽略晚到 token/完成回调；SSE 显式 UTF-8，避免中文输出成问号。
+- 权限调用校验签名、真实 ACTIVE 会话和实时数据库授权，修复 MyBatis 一级缓存导致授权变更仍返回旧权限；保护内置对象、最后一个超管及自身角色，共享权限定义仅 R_SUPER 可写。
+- 检索在 topK 前按实时知识库/文档状态和生效 revision 过滤，结果再次校验 tenant/版本；完整入库前保持 STAGING，旧 revision 晚完成不覆盖新索引。
+- 菜单 DTO/Web 树保留 `activePath`，按钮名称和授权标识成对查询，唯一约束为菜单范围；按原有八节框架更新项目进度、剩余差距和验证记录。
+
+### 验证与待办
+
+- 受影响后端模块及直接依赖编译通过；本轮 55 个定向测试全部通过，失败、错误、跳过均为 0，其中历史、系统管理、知识管理和队列在真实临时 MySQL 库执行。
+- 4 个前端传输测试、77/50 菜单按钮校验、变更文件 lint、类型检查及生产构建通过；修复模板点击表达式和重复 defineExpose 的构建错误。
+- 新旧随机 MySQL 库各重复迁移/种子两遍，23 表、77 菜单、50 按钮、全权限、旧审计数据保留及索引断言通过；临时库已清理，现有业务库未修改。
+- 真实 embedding/pgvector/Milvus、Redis/Nacos、多服务实际 Dubbo/浏览器端到端仍待验收；MySQL 与向量激活的跨存储一致性、独立对话创建/删除及完整 run 崩溃恢复仍需后续完善。
+
 ## 2026-09-20
 
 ### 新增

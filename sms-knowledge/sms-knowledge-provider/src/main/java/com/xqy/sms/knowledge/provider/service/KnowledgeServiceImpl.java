@@ -30,6 +30,8 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     private final AiKnowledgeIngestionJobMapper jobMapper;
     private final MilvusVectorStore vectorStore;
     private final InternalCallSigner internalCallSigner;
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.jdbc.core.JdbcTemplate metadata;
 
     public KnowledgeServiceImpl(AiKnowledgeBaseMapper baseMapper, AiKnowledgeDocumentMapper documentMapper,
                                 AiKnowledgeDocumentVersionMapper versionMapper, AiKnowledgeIngestionJobMapper jobMapper,
@@ -170,17 +172,33 @@ public class KnowledgeServiceImpl implements KnowledgeService {
             AiKnowledgeBase base = baseMapper.selectOne(new LambdaQueryWrapper<AiKnowledgeBase>()
                     .eq(AiKnowledgeBase::getId, query.getKnowledgeBaseId())
                     .eq(AiKnowledgeBase::getTenantId, query.getTenantId()));
-            if (base != null) {
+            if (base == null) return Collections.emptyList();
+            {
                 if (Boolean.FALSE.equals(base.getEnabled())) return Collections.emptyList();
                 if (effective.getTopK() == null || effective.getTopK() <= 0) effective.setTopK(base.getTopk());
                 if (effective.getSimilarityThreshold() == null)
                     effective.setSimilarityThreshold(base.getSimilarityThreshold());
             }
         }
+        var activeVersions = new java.util.LinkedHashMap<Long, String>();
+        String sql = "SELECT v.id,v.active_index_revision FROM ai_knowledge_document_version v JOIN ai_knowledge_document d ON d.id=v.document_id AND d.tenant_id=v.tenant_id JOIN ai_knowledge_base b ON b.id=d.knowledge_base_id AND b.tenant_id=d.tenant_id WHERE v.tenant_id=? AND b.enabled=1 AND d.status='ACTIVE' AND v.active_index_revision IS NOT NULL";
+        java.util.List<Object> args = new java.util.ArrayList<>();
+        args.add(query.getTenantId());
+        if (query.getKnowledgeBaseId() != null) { sql += " AND b.id=?"; args.add(query.getKnowledgeBaseId()); }
+        for (var row : metadata.queryForList(sql, args.toArray()))
+            activeVersions.put(((Number) row.get("id")).longValue(), row.get("active_index_revision").toString());
+        effective.setActiveVersions(activeVersions);
+        if (activeVersions.isEmpty()) return Collections.emptyList();
         List<AiknowledgeChunk> chunks = vectorStore.search(effective);
-        if (effective.getSimilarityThreshold() == null || chunks == null) return chunks;
+        if (chunks == null) return Collections.emptyList();
+        Double threshold = effective.getSimilarityThreshold();
         return chunks.stream()
-                .filter(chunk -> chunk.getScore() == null || chunk.getScore() >= effective.getSimilarityThreshold())
+                .filter(chunk -> chunk != null && "ACTIVE".equals(chunk.getStatus())
+                        && java.util.Objects.equals(chunk.getTenantId(), query.getTenantId())
+                        && activeVersions.containsKey(chunk.getDocumentVersionId())
+                        && java.util.Objects.equals(activeVersions.get(chunk.getDocumentVersionId()), chunk.getIndexRevision())
+                        && (query.getKnowledgeBaseId() == null || java.util.Objects.equals(chunk.getKnowledgeBaseId(), query.getKnowledgeBaseId())))
+                .filter(chunk -> threshold == null || chunk.getScore() == null || chunk.getScore() >= threshold)
                 .toList();
     }
 

@@ -38,20 +38,11 @@ import type { AppRouteRecord } from '@/types/router'
 
 type AuthItem = NonNullable<AppRouteRecord['meta']['authList']>[number]
 
-const userStore = useUserStore()
-
 export const useAuth = () => {
+  const userStore = useUserStore()
   const route = useRoute()
   const { isFrontendMode } = useAppMode()
   const { info } = storeToRefs(userStore)
-
-  // 前端按钮权限（例如：['add', 'edit']）
-  const frontendAuthList = info.value?.buttons ?? []
-
-  // 后端路由 meta 配置的权限列表（例如：[{ authMark: 'add' }]）
-  const backendAuthList: AuthItem[] = Array.isArray(route.meta.authList)
-    ? (route.meta.authList as AuthItem[])
-    : []
 
   /**
    * 检查是否拥有某权限标识（前后端模式通用）
@@ -59,12 +50,18 @@ export const useAuth = () => {
    * @returns 是否有权限
    */
   const hasAuth = (auth: string): boolean => {
+    if (info.value.roles?.includes('R_SUPER')) return true
+    const frontendAuthList = info.value.buttons ?? []
+    if (auth.includes(':')) return frontendAuthList.includes(auth)
     // 前端模式
     if (isFrontendMode.value) {
       return frontendAuthList.includes(auth)
     }
 
     // 后端模式
+    const backendAuthList: AuthItem[] = Array.isArray(route.meta.authList)
+      ? (route.meta.authList as AuthItem[])
+      : []
     return backendAuthList.some((item) => item?.authMark === auth)
   }
 

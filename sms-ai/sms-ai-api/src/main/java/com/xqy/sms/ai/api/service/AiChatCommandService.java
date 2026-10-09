@@ -7,6 +7,7 @@ import com.xqy.sms.common.security.rpc.InternalCallContext;
 public interface AiChatCommandService {
     /** Accepts a chat command; provider events are appended to the command's Redis Stream key. */
     void submit(AiChatCommand command);
+    java.util.Map<String, Object> submitRun(AiChatCommand command);
     void cancel(String runId, InternalCallContext callerContext);
     AiRunView getRun(String runId, InternalCallContext callerContext);
 }

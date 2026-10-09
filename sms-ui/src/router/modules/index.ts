@@ -9,6 +9,8 @@ import { resultRoutes } from './result'
 import { exceptionRoutes } from './exception'
 import { safeguardRoutes } from './safeguard'
 import { helpRoutes } from './help'
+import { knowledgeRoutes } from './knowledge'
+import { aiRoutes } from './ai'
 
 /**
  * 导出所有模块化路由
@@ -23,5 +25,7 @@ export const routeModules: AppRouteRecord[] = [
   resultRoutes,
   exceptionRoutes,
   safeguardRoutes,
-  ...helpRoutes
+  ...helpRoutes,
+  knowledgeRoutes,
+  aiRoutes
 ]

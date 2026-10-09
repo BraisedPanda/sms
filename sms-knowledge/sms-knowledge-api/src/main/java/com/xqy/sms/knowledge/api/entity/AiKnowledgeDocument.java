@@ -17,6 +17,9 @@ public class AiKnowledgeDocument extends CommonEntity implements Serializable {
     private String documentName;
     @TableField("source_type")
     private String sourceType;
+    private String status;
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
     private String version;
     private String category;
     private String keywords;

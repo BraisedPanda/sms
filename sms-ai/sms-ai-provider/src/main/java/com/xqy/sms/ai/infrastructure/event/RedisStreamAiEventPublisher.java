@@ -27,7 +27,7 @@ public class RedisStreamAiEventPublisher implements AiStreamEventPublisher {
             throw new IllegalArgumentException("streamKey must not be blank");
         }
         redisTemplate.opsForStream().add(StreamRecords.mapBacked(
-                Map.of("event", type, "data", String.valueOf(data))).withStreamKey(streamKey));
+                Map.of("event", type, "data", data instanceof String ? (String) data : cn.hutool.json.JSONUtil.toJsonStr(data))).withStreamKey(streamKey));
         redisTemplate.expire(streamKey, eventTtl);
     }
 }

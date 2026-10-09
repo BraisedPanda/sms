@@ -7,6 +7,9 @@ public class AiTaskRequest {
     private String alias;
     /** Client-supplied key used to safely retry an interrupted chat submission. */
     private String idempotencyKey;
+    private Long conversationId;
+    public Long getConversationId() { return conversationId; }
+    public void setConversationId(Long conversationId) { this.conversationId = conversationId; }
 
     public String getQuestion() {
         return question;

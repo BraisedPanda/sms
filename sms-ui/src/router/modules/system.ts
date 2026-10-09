@@ -6,10 +6,23 @@ export const systemRoutes: AppRouteRecord = {
   component: '/index/index',
   meta: {
     title: 'menus.system.title',
-    icon: 'ri:user-3-line',
-    roles: ['R_SUPER', 'R_ADMIN']
+    icon: 'ri:user-3-line'
   },
   children: [
+    {
+      path: 'sessions',
+      name: 'DeviceSessions',
+      component: '/system/sessions',
+      meta: {
+        title: '设备会话',
+        icon: 'ri:computer-line',
+        keepAlive: true,
+        authList: [
+          { title: '查询租户会话', authMark: 'system:session:read' },
+          { title: '退出租户设备', authMark: 'system:session:revoke' }
+        ]
+      }
+    },
     {
       path: 'user',
       name: 'User',
@@ -18,7 +31,13 @@ export const systemRoutes: AppRouteRecord = {
         title: 'menus.system.user',
         icon: 'ri:user-line',
         keepAlive: true,
-        roles: ['R_SUPER', 'R_ADMIN']
+        authList: [
+          { title: '查询用户', authMark: 'system:user:read' },
+          { title: '新增用户', authMark: 'system:user:create' },
+          { title: '编辑用户', authMark: 'system:user:update' },
+          { title: '删除用户', authMark: 'system:user:delete' },
+          { title: '分配角色', authMark: 'system:user:grant' }
+        ]
       }
     },
     {
@@ -29,7 +48,13 @@ export const systemRoutes: AppRouteRecord = {
         title: 'menus.system.role',
         icon: 'ri:user-settings-line',
         keepAlive: true,
-        roles: ['R_SUPER']
+        authList: [
+          { title: '查询角色', authMark: 'system:role:read' },
+          { title: '新增角色', authMark: 'system:role:create' },
+          { title: '编辑角色', authMark: 'system:role:update' },
+          { title: '删除角色', authMark: 'system:role:delete' },
+          { title: '角色授权', authMark: 'system:role:grant' }
+        ]
       }
     },
     {
@@ -52,11 +77,16 @@ export const systemRoutes: AppRouteRecord = {
         title: 'menus.system.menu',
         icon: 'ri:menu-line',
         keepAlive: true,
-        roles: ['R_SUPER'],
         authList: [
           { title: '新增', authMark: 'add' },
           { title: '编辑', authMark: 'edit' },
-          { title: '删除', authMark: 'delete' }
+          { title: '删除', authMark: 'delete' },
+          ...['menu', 'button'].flatMap((resource) =>
+            ['read', 'create', 'update', 'delete'].map((action) => ({
+              title: `${resource === 'menu' ? '菜单' : '按钮'}${({ read: '查询', create: '新增', update: '编辑', delete: '删除' } as Record<string, string>)[action]}`,
+              authMark: `system:${resource}:${action}`
+            }))
+          )
         ]
       }
     },

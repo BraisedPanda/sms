@@ -19,9 +19,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api")
 public class AuthController {
     private final AuthService authService;
+    @org.apache.dubbo.config.annotation.DubboReference(check = false)
+    private com.xqy.sms.system.api.service.SystemManagementService management;
+    private final com.xqy.sms.web.application.auth.RpcCaller rpcCaller;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, com.xqy.sms.web.application.auth.RpcCaller rpcCaller) {
         this.authService = authService;
+        this.rpcCaller = rpcCaller;
     }
 
     @PostMapping("/auth/login")
@@ -60,16 +64,26 @@ public class AuthController {
     }
 
     @PostMapping("/system/sessions/{sessionId}/kick")
-    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('R_SUPER', 'R_ADMIN')")
-    public ApiResponse<Void> kick(@PathVariable Long sessionId) {
-        authService.kick(sessionId);
+    public ApiResponse<Void> kick(@PathVariable Long sessionId, Authentication authentication) {
+        management.revokeSession(sessionId, rpcCaller.context(authentication));
         return ApiResponse.success(null);
     }
 
     @GetMapping("/user/list")
-    @org.springframework.security.access.prepost.PreAuthorize("hasAuthority('user:read')")
-    public ApiResponse<SystemAuthModels.UserPage> users(String userName, String status, Long current, Long size) {
-        return ApiResponse.success(authService.users(userName, status, current == null ? 1 : current, size == null ? 10 : size));
+    public ApiResponse<com.xqy.sms.common.dto.PageResult> users(String userName, String status, Integer current, Integer size, Authentication authentication) {
+        Map<String, String> filters = new LinkedHashMap<>();
+        if (userName != null) filters.put("search", userName);
+        if (status != null) filters.put("status", status);
+        var page = management.list("users", filters, current == null ? 1 : current, size == null ? 10 : size, rpcCaller.context(authentication));
+        // Preserve the legacy UI field names without using the old unscoped RPC query.
+        page.setRecords(page.getRecords().stream().map(row -> {
+            Map<String, Object> mapped = new LinkedHashMap<>(row);
+            mapped.put("userName", row.get("username")); mapped.put("nickName", row.get("nickname"));
+            mapped.put("userPhone", row.get("phone")); mapped.put("userEmail", row.get("email"));
+            mapped.put("userGender", row.get("gender")); mapped.put("userRoles", row.getOrDefault("roleCodes", List.of()));
+            return mapped;
+        }).toList());
+        return ApiResponse.success(page);
     }
 
     @GetMapping("/v3/system/menus")

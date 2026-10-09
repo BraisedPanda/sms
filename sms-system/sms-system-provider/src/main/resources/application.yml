@@ -31,6 +31,8 @@ dubbo:
   scan:
     base-packages: com.xqy.sms.system.provider.service
 sms:
+  internal-rpc:
+    secret: ${INTERNAL_RPC_SECRET}
   system:
     jwt:
       secret: ${JWT_SECRET}

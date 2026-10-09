@@ -1,4 +1,8 @@
 spring:
+  servlet:
+    multipart:
+      max-file-size: 4MB
+      max-request-size: 5MB
   application:
     name: ${WEB_APPLICATION_NAME:sms-web}
   config:

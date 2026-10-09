@@ -51,12 +51,22 @@ public class PostgresVectorStore implements MilvusVectorStore {
         }
         List<Object> args = new ArrayList<>();
         if (query.getTenantId() == null || query.getTenantId().isBlank()) return Collections.emptyList();
+        if (query.getActiveVersions() == null || query.getActiveVersions().isEmpty()) return Collections.emptyList();
         StringBuilder sql = new StringBuilder("SELECT id, tenant_id, knowledge_base_id, document_id, document_no, "
                 + "document_version_id, index_revision, chunk_no, content, metadata, status, "
                 + "1 - (embedding <=> CAST(? AS vector)) AS score FROM ")
                 .append(tableName).append(" WHERE status = 'ACTIVE' AND tenant_id = ?");
         args.add(vectorLiteral(query.getEmbedding()));
         args.add(query.getTenantId());
+        sql.append(" AND (");
+        boolean first = true;
+        for (var version : query.getActiveVersions().entrySet()) {
+            if (!first) sql.append(" OR ");
+            first = false;
+            sql.append("(document_version_id=? AND index_revision=?)");
+            args.add(version.getKey()); args.add(Integer.parseInt(version.getValue()));
+        }
+        sql.append(")");
         if (query.getKnowledgeBaseId() != null) {
             sql.append(" AND knowledge_base_id = ?");
             args.add(query.getKnowledgeBaseId());

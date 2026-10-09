@@ -24,6 +24,14 @@ public class AiChatService {
     private final AiRequestLogService requestLogService;
     private final AiStreamEventPublisher eventPublisher;
     private final int chatMemoryMaxMessages;
+    private final java.util.concurrent.ConcurrentMap<String, StreamState> streams = new java.util.concurrent.ConcurrentHashMap<>();
+    private static class StreamState {
+        final java.util.concurrent.atomic.AtomicBoolean terminal = new java.util.concurrent.atomic.AtomicBoolean();
+        volatile dev.langchain4j.model.chat.response.StreamingHandle handle;
+        volatile boolean cancelled;
+        Runnable onCancel;
+        long lastCancelCheck;
+    }
 
     public AiChatService(ModelRegistry modelRegistry,
                          RedisChatMemoryStore chatMemoryStore,
@@ -44,27 +52,73 @@ public class AiChatService {
     /** Streams a composed answer and reports terminal status to the task-run orchestrator. */
     public void answer(String streamKey, String resultJson, String chatMemoryId,
                        String requestId, String alias, Consumer<String> onSuccess, Consumer<Throwable> onFailure) {
+        answer(streamKey,resultJson,chatMemoryId,requestId,alias,onSuccess,onFailure,()->false,java.util.List.of());
+    }
+
+    public void cancel(String streamKey) {
+        if (streamKey == null) return;
+        StreamState state = streams.get(streamKey);
+        if (state == null) return;
+        state.cancelled = true;
+        if (state.handle != null) state.handle.cancel();
+        if (state.onCancel != null) state.onCancel.run();
+    }
+
+    public void answer(String streamKey, String resultJson, String chatMemoryId,
+                       String requestId, String alias, Consumer<String> onSuccess, Consumer<Throwable> onFailure,
+                       java.util.function.BooleanSupplier cancellationRequested,
+                       java.util.List<dev.langchain4j.data.message.ChatMessage> restoredMemory) {
+        StreamState state = new StreamState();
+        state.onCancel = () -> {
+            if (state.terminal.compareAndSet(false,true)) {
+                try { fail(streamKey,requestId,onFailure,new com.xqy.sms.ai.application.service.execution.TaskExecutionService.TaskCancelledException()); }
+                finally { streams.remove(streamKey,state); }
+            }
+        };
+        streams.put(streamKey,state);
         if (resultJson == null || resultJson.isBlank()) {
+            streams.remove(streamKey,state);
             fail(streamKey, requestId, onFailure, new IllegalArgumentException("工具没有返回结果"));
             return;
         }
         try {
+            if (cancellationRequested.getAsBoolean()) { cancel(streamKey); return; }
+            chatMemoryStore.initializeIfAbsent(chatMemoryId, restoredMemory);
             publish(streamKey, AiConstants.STREAM_EVENT.GENERATING, "生成中");
             createAssistant(alias).answer(chatMemoryId, resultJson)
-                    .onPartialResponse(token -> publish(streamKey, AiConstants.STREAM_EVENT.TOKEN, token))
+                    .onPartialResponseWithContext((response, context) -> {
+                        state.handle = context.streamingHandle();
+                        long now = System.currentTimeMillis();
+                        if (now-state.lastCancelCheck >= 100) {
+                            state.lastCancelCheck = now;
+                            if (cancellationRequested.getAsBoolean()) state.cancelled = true;
+                        }
+                        if (state.cancelled) { state.handle.cancel(); state.onCancel.run(); return; }
+                        if (!state.terminal.get()) publish(streamKey, AiConstants.STREAM_EVENT.TOKEN, response.text());
+                    })
                     .onCompleteResponse(response -> {
+                        if (!state.terminal.compareAndSet(false,true)) return;
                         try {
                             onSuccess.accept(response == null || response.aiMessage() == null ? null : response.aiMessage().text());
                             finishRequest(requestId, response);
                             publish(streamKey, AiConstants.STREAM_EVENT.DONE, "完成");
                         } catch (Exception error) {
                             fail(streamKey, requestId, onFailure, error);
+                        } finally {
+                            streams.remove(streamKey,state);
                         }
                     })
-                    .onError(error -> fail(streamKey, requestId, onFailure, error))
+                    .onError(error -> {
+                        if (!state.terminal.compareAndSet(false,true)) return;
+                        try { fail(streamKey, requestId, onFailure, error); }
+                        finally { streams.remove(streamKey,state); }
+                    })
                     .start();
         } catch (Exception error) {
-            fail(streamKey, requestId, onFailure, error);
+            if (state.terminal.compareAndSet(false,true)) {
+                try { fail(streamKey, requestId, onFailure, error); }
+                finally { streams.remove(streamKey,state); }
+            }
         }
     }
 

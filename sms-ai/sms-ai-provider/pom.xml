@@ -5,6 +5,7 @@
     <parent><groupId>com.xqy</groupId><artifactId>sms-ai</artifactId><version>${revision}</version><relativePath>../pom.xml</relativePath></parent>
     <artifactId>sms-ai-provider</artifactId>
     <dependencies>
+        <dependency><groupId>com.xqy</groupId><artifactId>sms-system-api</artifactId></dependency>
         <dependency><groupId>com.xqy</groupId><artifactId>sms-ai-api</artifactId></dependency>
         <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-data-redis</artifactId></dependency>
         <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-jdbc</artifactId></dependency>

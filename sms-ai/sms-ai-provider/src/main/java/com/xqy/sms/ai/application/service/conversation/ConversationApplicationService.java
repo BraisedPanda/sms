@@ -66,7 +66,7 @@ public class ConversationApplicationService {
         this.businessResultTtlMinutes = businessResultTtlMinutes;
     }
 
-    public void start(AiTaskRequest request, JwtUserContext userContext, String streamKey) {
+    public AiTaskRun start(AiTaskRequest request, JwtUserContext userContext, String streamKey) {
         validate(request);
         if (userContext == null) throw new IllegalArgumentException("authenticated user context must not be null");
         if (streamKey == null || streamKey.isBlank()) throw new IllegalArgumentException("streamKey must not be blank");
@@ -74,34 +74,37 @@ public class ConversationApplicationService {
                 ? AiConstants.MODEL_ALIAS.BALANCED : request.getAlias().trim();
         AiTaskRun run = runService.createOrReuse(UUID.randomUUID().toString(), userContext.tenantId(), String.valueOf(userContext.userId()),
                 String.valueOf(userContext.sessionId()),
-                request.getQuestion(), alias, request.getIdempotencyKey());
-        publish(streamKey, AiConstants.STREAM_EVENT.START, java.util.Map.of("runId", run.getRunId()));
+                request.getQuestion(), alias, request.getIdempotencyKey(), streamKey, request.getConversationId());
+        String deliveryKey = run.getStreamKey() == null ? streamKey : run.getStreamKey();
         if (runService.claimPendingRun(run.getRunId())) {
+            try {
+            publish(deliveryKey, AiConstants.STREAM_EVENT.START, java.util.Map.of("runId", run.getRunId()));
             requestLogService.start(run.getRequestId(), run.getTenantId(), run.getUserId(), run.getSessionId(), run.getQuestion(),
                     "chat", run.getModelAlias());
-            workflowExecutor.execute(() -> execute(run.getRunId(), streamKey));
-        } else {
-            publish(streamKey, AiConstants.STREAM_EVENT.START,
-                    java.util.Map.of("runId", run.getRunId(), "status", run.getStatus()));
-            if (com.xqy.sms.ai.domain.model.AiTaskRunStatus.isTerminal(run.getStatus())) {
-                publish(streamKey,
-                        com.xqy.sms.ai.domain.model.AiTaskRunStatus.SUCCEEDED.equals(run.getStatus())
-                                ? AiConstants.STREAM_EVENT.DONE : AiConstants.STREAM_EVENT.ERROR,
-                        run.getStatus());
+            workflowExecutor.execute(() -> execute(run.getRunId(), deliveryKey));
+            } catch (RuntimeException error) {
+                runService.failRun(run.getRunId(), error);
+                publish(deliveryKey, AiConstants.STREAM_EVENT.ERROR, "任务暂时无法启动，请重试");
             }
         }
+        return run;
     }
 
     public void cancel(String runId, JwtUserContext userContext) {
         if (userContext == null) throw new IllegalArgumentException("authenticated user context must not be null");
-        runService.cancel(runId, userContext.tenantId(), String.valueOf(userContext.userId()));
-        executionService.cancel(runId);
+        if (runService.cancel(runId, userContext.tenantId(), String.valueOf(userContext.userId()))) {
+            executionService.cancel(runId);
+            AiTaskRun run = runService.requireRun(runId);
+            chatService.cancel(run.getStreamKey());
+            if (run.getStreamKey() != null) publish(run.getStreamKey(), AiConstants.STREAM_EVENT.ERROR, "已停止生成");
+        }
     }
 
     private void execute(String runId, String streamKey) {
         try {
             AiTaskRun run = runService.requireRun(runId);
-            chatHistoryService.recordUserMessage(run);
+            Long conversationId = chatHistoryService.recordUserMessage(run);
+            runService.attachConversation(runId, conversationId);
             publish(streamKey, AiConstants.STREAM_EVENT.PLANNING, "分析问题中");
             AiTaskStep planStep = runService.createStep(runId, 1, "PLAN", "planner", null,
                     run.getQuestion(), 1, stepTimeoutMs);
@@ -160,17 +163,15 @@ public class ConversationApplicationService {
                 + AiSafetyPolicy.promptResults(results);
         chatService.answer(streamKey, prompt, memoryKey(run), run.getRequestId(), run.getModelAlias(),
                 answer -> {
-                    if (runService.isCancellationRequested(runId)) {
-                        runService.markCancelled(runId);
-                        return;
-                    }
+                    checkCancelled(runId);
                     chatHistoryService.recordAssistantMessage(run, answer);
                     runService.succeedStep(composeStep, "STREAM_COMPLETED");
-                    runService.completeRun(runId);
+                    if (!runService.completeRun(runId)) throw new TaskExecutionService.TaskCancelledException();
                 }, error -> {
                     runService.failStep(composeStep, error.getClass().getSimpleName(), error.getMessage());
-                    runService.failRun(runId, error);
-                });
+                    if (runService.isCancellationRequested(runId)) runService.markCancelled(runId);
+                    else runService.failRun(runId, error);
+                }, () -> runService.isCancellationRequested(runId), chatHistoryService.recentMessages(run, 40));
     }
 
     private void checkCancelled(String runId) {
@@ -187,7 +188,7 @@ public class ConversationApplicationService {
 
     private String businessContext(AiTaskRun run) { return redisTemplate.opsForValue().get(businessKey(run)); }
     private String businessKey(AiTaskRun run) { return AiConstants.CACHE_KEY.BUSINESS_PREFIX + run.getUserId() + "_" + run.getSessionId(); }
-    private String memoryKey(AiTaskRun run) { return AiConstants.CACHE_KEY.CHAT_PREFIX + run.getUserId() + "_" + run.getSessionId(); }
+    private String memoryKey(AiTaskRun run) { return AiConstants.CACHE_KEY.CHAT_PREFIX + run.getTenantId() + "_" + run.getUserId() + "_" + run.getConversationId(); }
 
     private void validate(AiTaskRequest request) {
         if (request == null || request.getQuestion() == null || request.getQuestion().isBlank()) {

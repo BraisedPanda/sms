@@ -14,6 +14,18 @@ public class AiKnowledgeIngestionJob extends CommonEntity implements Serializabl
     @TableField("job_type") private String jobType;
     private String status;
     private Integer progress;
+    private Integer processedChunks;
+    private Boolean cancelRequested;
+    private String workerToken;
+    private LocalDateTime leaseExpireTime;
+    public Integer getProcessedChunks() { return processedChunks; }
+    public void setProcessedChunks(Integer processedChunks) { this.processedChunks = processedChunks; }
+    public Boolean getCancelRequested() { return cancelRequested; }
+    public void setCancelRequested(Boolean cancelRequested) { this.cancelRequested = cancelRequested; }
+    public String getWorkerToken() { return workerToken; }
+    public void setWorkerToken(String workerToken) { this.workerToken = workerToken; }
+    public LocalDateTime getLeaseExpireTime() { return leaseExpireTime; }
+    public void setLeaseExpireTime(LocalDateTime leaseExpireTime) { this.leaseExpireTime = leaseExpireTime; }
     @TableField("retry_count") private Integer retryCount;
     @TableField("error_message") private String errorMessage;
     @TableField("start_time") private LocalDateTime startTime;

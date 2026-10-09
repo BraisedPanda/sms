@@ -14,6 +14,9 @@ public class AiKnowledgeBase extends CommonEntity implements Serializable {
     private String embeddingModelAlias;
     private Integer chunkSize;
     private Integer chunkOverlap;
+    private String splitStrategy;
+    public String getSplitStrategy() { return splitStrategy; }
+    public void setSplitStrategy(String splitStrategy) { this.splitStrategy = splitStrategy; }
     private Integer topk;
     private Double similarityThreshold;
     private Boolean enabled;

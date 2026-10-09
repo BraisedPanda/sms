@@ -44,6 +44,7 @@ public class MilvusRestVectorStore implements MilvusVectorStore {
 
     @Override
     public List<AiknowledgeChunk> search(KnowledgeVectorQuery query) {
+        if (query == null || query.getActiveVersions() == null || query.getActiveVersions().isEmpty()) return Collections.emptyList();
         if (query == null || query.getEmbedding() == null || query.getEmbedding().isEmpty() || endpoint.isBlank()) {
             return Collections.emptyList();
         }
@@ -106,6 +107,9 @@ public class MilvusRestVectorStore implements MilvusVectorStore {
         expressions.add("tenantId == " + quote(query.getTenantId()));
         if (query.getKnowledgeBaseId() != null) expressions.add("knowledgeBaseId == " + query.getKnowledgeBaseId());
         expressions.add("status == 'ACTIVE'");
+        expressions.add("(" + query.getActiveVersions().entrySet().stream()
+                .map(v -> "(documentVersionId == " + v.getKey() + " and indexRevision == " + quote(v.getValue()) + ")")
+                .collect(java.util.stream.Collectors.joining(" or ")) + ")");
         Map<String, Object> filter = query.getFilter();
         if (filter != null) {
             filter.forEach((key, value) -> expressions.add(key + " == " + quote(value)));

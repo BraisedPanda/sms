@@ -13,6 +13,7 @@ public class AiChatCommand implements Serializable {
     private String idempotencyKey;
     private String streamKey;
     private String tenantId;
+    private Long conversationId;
     private InternalCallContext callerContext;
 
     public AiChatCommand() { }
@@ -46,6 +47,9 @@ public class AiChatCommand implements Serializable {
     public void setStreamKey(String streamKey) { this.streamKey = streamKey; }
     public String getTenantId() { return tenantId; }
     public void setTenantId(String tenantId) { this.tenantId = tenantId; }
+    public Long getConversationId() { return conversationId; }
+    public Long conversationId() { return conversationId; }
+    public void setConversationId(Long conversationId) { this.conversationId = conversationId; }
     public InternalCallContext getCallerContext() { return callerContext; }
     public void setCallerContext(InternalCallContext callerContext) { this.callerContext = callerContext; }
 

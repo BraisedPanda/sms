@@ -17,6 +17,7 @@ sms:
   internal-rpc:
     secret: ${INTERNAL_RPC_SECRET}
   knowledge:
+    upload-directory: ${KNOWLEDGE_UPLOAD_DIRECTORY:./data/knowledge-uploads}
     # Use "milvus" to route queryVector through Milvus; PostgreSQL/pgvector is the default.
     vector-store: ${KNOWLEDGE_VECTOR_STORE:postgres}
     embedding-dimensions: ${EMBEDDING_DIMENSIONS:1536}

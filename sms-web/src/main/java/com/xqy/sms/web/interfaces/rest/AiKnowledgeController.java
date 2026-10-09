@@ -29,7 +29,6 @@ public class AiKnowledgeController {
     }
 
     @PostMapping("/ingestions")
-    @PreAuthorize("hasAnyRole('R_SUPER', 'R_ADMIN')")
     public ApiResponse<KnowledgeIngestionResult> ingest(@RequestBody(required = false) KnowledgeIngestionCommand command,
                                                           Authentication authentication) {
         if (!(authentication != null && authentication.getPrincipal() instanceof AuthService.AuthenticatedUser user)) {

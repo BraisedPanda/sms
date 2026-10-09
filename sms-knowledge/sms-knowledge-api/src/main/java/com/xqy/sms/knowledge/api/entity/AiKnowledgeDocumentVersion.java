@@ -17,6 +17,15 @@ public class AiKnowledgeDocumentVersion extends CommonEntity implements Serializ
     @TableField("active_index_revision") private String activeIndexRevision;
     @TableField("index_status") private String indexStatus;
     private Integer chunkCount;
+    private Integer chunkSize;
+    private Integer chunkOverlap;
+    private String splitStrategy;
+    public Integer getChunkSize() { return chunkSize; }
+    public void setChunkSize(Integer chunkSize) { this.chunkSize = chunkSize; }
+    public Integer getChunkOverlap() { return chunkOverlap; }
+    public void setChunkOverlap(Integer chunkOverlap) { this.chunkOverlap = chunkOverlap; }
+    public String getSplitStrategy() { return splitStrategy; }
+    public void setSplitStrategy(String splitStrategy) { this.splitStrategy = splitStrategy; }
     @TableField("error_message") private String errorMessage;
     public Long getDocumentId() { return documentId; }
     public String getTenantId() { return tenantId; }

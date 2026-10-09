@@ -20,6 +20,10 @@ public class KnowledgeVectorQuery implements Serializable {
     private String collectionName;
     private String tenantId;
     private InternalCallContext callerContext;
+    /** Set by the knowledge provider from live metadata, never accepted from the caller. */
+    private Map<Long, String> activeVersions;
+    public Map<Long, String> getActiveVersions() { return activeVersions; }
+    public void setActiveVersions(Map<Long, String> activeVersions) { this.activeVersions = activeVersions; }
 
     public Long getKnowledgeBaseId() {
         return knowledgeBaseId;

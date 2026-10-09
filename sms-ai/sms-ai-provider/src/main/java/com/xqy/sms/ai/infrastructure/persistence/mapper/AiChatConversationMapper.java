@@ -23,4 +23,7 @@ public interface AiChatConversationMapper extends BaseMapper<AiChatConversation>
             """)
     AiChatConversation lockByOwner(@Param("tenantId") String tenantId, @Param("userId") String userId,
                                    @Param("sessionId") String sessionId);
+
+    @Select("SELECT * FROM ai_chat_conversation WHERE id=#{id} AND tenant_id=#{tenantId} AND user_id=#{userId} FOR UPDATE")
+    AiChatConversation lockByIdAndOwner(@Param("id") Long id, @Param("tenantId") String tenantId, @Param("userId") String userId);
 }

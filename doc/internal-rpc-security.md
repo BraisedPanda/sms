@@ -7,7 +7,7 @@ The Web, AI, Knowledge and System services must run on a private service network
 | Destination | Allowed callers | Exposure |
 | --- | --- | --- |
 | Web `9090` | ingress/load balancer | public application entry |
-| AI Dubbo port | Web only | private network |
+| AI Dubbo `20883` | Web only | private network |
 | Knowledge Dubbo `20881` | AI and approved admin services only | private network |
 | System Dubbo `20882` | Web only | private network |
 | Nacos `8848/9848` | application service accounts only | private management network |

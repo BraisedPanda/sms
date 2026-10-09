@@ -1,6 +1,7 @@
 package com.xqy.sms.ai.application.service.run;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.xqy.sms.ai.infrastructure.persistence.mapper.AiTaskRunMapper;
 import com.xqy.sms.ai.infrastructure.persistence.mapper.AiTaskStepMapper;
 import com.xqy.sms.ai.domain.model.AiTaskRunStatus;
@@ -28,12 +29,20 @@ public class AiTaskRunService {
 
     public AiTaskRun createOrReuse(String requestId, String tenantId, String userId, String sessionId, String question,
                                    String modelAlias, String idempotencyKey) {
+        return createOrReuse(requestId, tenantId, userId, sessionId, question, modelAlias, idempotencyKey, null, null);
+    }
+
+    public AiTaskRun createOrReuse(String requestId, String tenantId, String userId, String sessionId, String question,
+                                  String modelAlias, String idempotencyKey, String streamKey, Long conversationId) {
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
             AiTaskRun existing = findByIdempotencyKey(tenantId, idempotencyKey);
             if (existing != null) {
                 if (java.util.Objects.equals(existing.getTenantId(), tenantId)
                         && java.util.Objects.equals(existing.getUserId(), userId)
-                        && java.util.Objects.equals(existing.getSessionId(), sessionId)) return existing;
+                        && java.util.Objects.equals(existing.getSessionId(), sessionId)) {
+                    validateRetry(existing, question, modelAlias, conversationId);
+                    return existing;
+                }
                 throw new AiRunAccessDeniedException();
             }
         }
@@ -43,6 +52,8 @@ public class AiTaskRunService {
         run.setTenantId(requiredTenant(tenantId));
         run.setUserId(userId);
         run.setSessionId(sessionId);
+        run.setStreamKey(streamKey);
+        run.setConversationId(conversationId);
         run.setRunType("CHAT");
         run.setStatus(AiTaskRunStatus.PENDING);
         run.setQuestion(question);
@@ -56,9 +67,24 @@ public class AiTaskRunService {
             return run;
         } catch (DuplicateKeyException exception) {
             AiTaskRun existing = findByIdempotencyKey(tenantId, idempotencyKey);
-            if (existing != null) return existing;
+            if (existing != null) {
+                if (!java.util.Objects.equals(existing.getUserId(), userId) || !java.util.Objects.equals(existing.getSessionId(), sessionId)) throw new AiRunAccessDeniedException();
+                validateRetry(existing, question, modelAlias, conversationId);
+                return existing;
+            }
             throw exception;
         }
+    }
+
+    public void attachConversation(String runId, Long conversationId) {
+        runMapper.update(null, new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<AiTaskRun>()
+                .eq(AiTaskRun::getRunId, runId).isNull(AiTaskRun::getConversationId).set(AiTaskRun::getConversationId, conversationId));
+    }
+
+    private void validateRetry(AiTaskRun existing, String question, String alias, Long conversationId) {
+        if (!java.util.Objects.equals(existing.getQuestion(), question) || !java.util.Objects.equals(existing.getModelAlias(), alias)
+                || (conversationId != null && !java.util.Objects.equals(existing.getConversationId(), conversationId)))
+            throw new IllegalArgumentException("同一幂等键不能提交不同问题、模型或对话");
     }
 
     public AiTaskRun requireRun(String runId) {
@@ -81,6 +107,7 @@ public class AiTaskRunService {
         return runMapper.update(null, new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<AiTaskRun>()
                 .eq(AiTaskRun::getRunId, runId)
                 .eq(AiTaskRun::getStatus, AiTaskRunStatus.PENDING)
+                .eq(AiTaskRun::getCancelRequest, false)
                 .set(AiTaskRun::getStatus, AiTaskRunStatus.PLANNING)) > 0;
     }
 
@@ -147,8 +174,8 @@ public class AiTaskRunService {
         stepMapper.updateById(step);
     }
 
-    public void completeRun(String runId) {
-        updateRun(runId, AiTaskRunStatus.SUCCEEDED, null, null, run -> { });
+    public boolean completeRun(String runId) {
+        return updateRun(runId, AiTaskRunStatus.SUCCEEDED, null, null, run -> { });
     }
 
     public void failRun(String runId, Throwable error) {
@@ -157,13 +184,16 @@ public class AiTaskRunService {
         updateRun(runId, AiTaskRunStatus.FAILED, code, message, run -> { });
     }
 
-    public void cancel(String runId, String tenantId, String userId) {
+    public boolean cancel(String runId, String tenantId, String userId) {
         AiTaskRun run = requireOwnedRun(runId, tenantId, userId);
-        if (AiTaskRunStatus.isTerminal(run.getStatus())) return;
-        run.setCancelRequest(true);
-        run.setCancelRequestTime(LocalDateTime.now());
-        run.setStatus(AiTaskRunStatus.CANCEL_REQUESTED);
-        runMapper.updateById(run);
+        if (AiTaskRunStatus.isTerminal(run.getStatus())) return false;
+        return runMapper.update(null, activeRun(runId)
+                .set(AiTaskRun::getCancelRequest, true)
+                .set(AiTaskRun::getCancelRequestTime, LocalDateTime.now())
+                .set(AiTaskRun::getStatus, AiTaskRunStatus.CANCELLED)
+                .set(AiTaskRun::getFinishTime, LocalDateTime.now())
+                .set(AiTaskRun::getErrorCode, "CANCELLED")
+                .set(AiTaskRun::getErrorMessage, "已停止生成")) > 0;
     }
 
     public AiTaskRun requireOwnedRun(String runId, String tenantId, String userId) {
@@ -202,9 +232,8 @@ public class AiTaskRunService {
     }
 
     private void setCurrentStep(String runId, int stepNo) {
-        AiTaskRun run = requireRun(runId);
-        run.setCurrentStepNo(stepNo);
-        runMapper.updateById(run);
+        runMapper.update(null, activeRun(runId).eq(AiTaskRun::getCancelRequest, false)
+                .set(AiTaskRun::getCurrentStepNo, stepNo));
     }
 
     private AiTaskRun findByIdempotencyKey(String tenantId, String key) {
@@ -213,15 +242,25 @@ public class AiTaskRunService {
                         .eq(AiTaskRun::getIdempotencyKey, key));
     }
 
-    private void updateRun(String runId, String status, String errorCode, String errorMessage,
+    private boolean updateRun(String runId, String status, String errorCode, String errorMessage,
                            java.util.function.Consumer<AiTaskRun> customize) {
         AiTaskRun run = requireRun(runId);
+        String oldPlan = run.getPlanJson();
         customize.accept(run);
-        run.setStatus(status);
-        if (AiTaskRunStatus.isTerminal(status)) run.setFinishTime(LocalDateTime.now());
-        run.setErrorCode(errorCode);
-        run.setErrorMessage(errorMessage);
-        runMapper.updateById(run);
+        LambdaUpdateWrapper<AiTaskRun> update = activeRun(runId)
+                .set(AiTaskRun::getStatus, status)
+                .set(AiTaskRun::getErrorCode, errorCode)
+                .set(AiTaskRun::getErrorMessage, errorMessage);
+        if (AiTaskRunStatus.CANCELLED.equals(status)) update.set(AiTaskRun::getCancelRequest, true);
+        else update.eq(AiTaskRun::getCancelRequest, false);
+        if (AiTaskRunStatus.isTerminal(status)) update.set(AiTaskRun::getFinishTime, LocalDateTime.now());
+        if (!java.util.Objects.equals(oldPlan, run.getPlanJson())) update.set(AiTaskRun::getPlanJson, run.getPlanJson());
+        return runMapper.update(null, update) > 0;
+    }
+
+    private LambdaUpdateWrapper<AiTaskRun> activeRun(String runId) {
+        return new LambdaUpdateWrapper<AiTaskRun>().eq(AiTaskRun::getRunId, runId)
+                .notIn(AiTaskRun::getStatus, AiTaskRunStatus.SUCCEEDED, AiTaskRunStatus.FAILED, AiTaskRunStatus.CANCELLED);
     }
 
     private String blankToNull(String value) {

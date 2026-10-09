@@ -1,6 +1,6 @@
 -- SMS MySQL 8.0+ bootstrap data.
 -- New database: run after table_init.sql. Existing database: apply
--- 2026-10-09_chat_history_permissions.sql first. All statements use stable IDs and are idempotent.
+-- 2026-10-09_product_operations.sql first. All statements use stable IDs and are idempotent.
 -- Development login: Admin / 123456. Change this password immediately outside local development.
 SET NAMES utf8mb4;
 SET @bootstrap_tenant = 'default';
@@ -182,7 +182,7 @@ INSERT INTO sys_menu (
     (1311, 1309, 'banners', 'Banners', '/template/banners', NULL, 'menus.template.banners', 'ri:rectangle-line', 20, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
     (1312, 1309, 'charts', 'Charts', '/template/charts', NULL, 'menus.template.charts', 'ri:bar-chart-box-line', 30, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
     (1313, 1309, 'map', 'Map', '/template/map', NULL, 'menus.template.map', 'ri:map-pin-line', 40, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
-    (1314, 1309, 'chat', 'Chat', '/template/chat', NULL, 'menus.template.chat', 'ri:message-3-line', 50, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1314, 1309, 'chat', 'Chat', '/template/chat', NULL, 'menus.template.chat', 'ri:message-3-line', 50, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
     (1315, 1309, 'calendar', 'Calendar', '/template/calendar', NULL, 'menus.template.calendar', 'ri:calendar-2-line', 60, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
     (1316, 1309, 'pricing', 'Pricing', '/template/pricing', NULL, 'menus.template.pricing', 'ri:money-cny-box-line', 70, 1, 1, 0, 1, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
     (1317, NULL, '/widgets', 'Widgets', '/index/index', NULL, 'menus.widgets.title', 'ri:apps-2-add-line', 30, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
@@ -212,11 +212,12 @@ INSERT INTO sys_menu (
     (1341, 1331, 'tables/tree', 'TablesTree', '/examples/tables/tree', NULL, 'menus.examples.tablesTree', 'ri:layout-2-line', 70, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
     (1342, 1331, 'socket-chat', 'SocketChat', '/examples/socket-chat', NULL, 'menus.examples.socketChat', 'ri:shake-hands-line', 80, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
     (1301, NULL, '/system', 'System', '/index/index', NULL, 'menus.system.title', 'ri:user-3-line', 50, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
-    (1302, 1301, 'user', 'User', '/system/user', NULL, 'menus.system.user', 'ri:user-line', 10, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
-    (1304, 1301, 'role', 'Role', '/system/role', NULL, 'menus.system.role', 'ri:user-settings-line', 20, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
-    (1366, 1301, 'user-center', 'UserCenter', '/system/user-center', NULL, 'menus.system.userCenter', 'ri:user-line', 30, 1, 0, 1, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
-    (1303, 1301, 'menu', 'Menus', '/system/menu', NULL, 'menus.system.menu', 'ri:menu-line', 40, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
-    (1357, 1301, 'nested', 'Nested', '', NULL, 'menus.system.nested', 'ri:menu-unfold-3-line', 50, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1400, 1301, 'sessions', 'DeviceSessions', '/system/sessions', NULL, '设备会话', 'ri:computer-line', 10, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1302, 1301, 'user', 'User', '/system/user', NULL, 'menus.system.user', 'ri:user-line', 20, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1304, 1301, 'role', 'Role', '/system/role', NULL, 'menus.system.role', 'ri:user-settings-line', 30, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1366, 1301, 'user-center', 'UserCenter', '/system/user-center', NULL, 'menus.system.userCenter', 'ri:user-line', 40, 1, 0, 1, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1303, 1301, 'menu', 'Menus', '/system/menu', NULL, 'menus.system.menu', 'ri:menu-line', 50, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1357, 1301, 'nested', 'Nested', '', NULL, 'menus.system.nested', 'ri:menu-unfold-3-line', 60, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
     (1358, 1357, 'menu1', 'NestedMenu1', '/system/nested/menu1', NULL, 'menus.system.menu1', 'ri:align-justify', 10, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
     (1359, 1357, 'menu2', 'NestedMenu2', '', NULL, 'menus.system.menu2', 'ri:align-justify', 20, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
     (1360, 1359, 'menu2-1', 'NestedMenu2-1', '/system/nested/menu2', NULL, 'menus.system.menu21', 'ri:align-justify', 10, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
@@ -241,7 +242,14 @@ INSERT INTO sys_menu (
     (1367, NULL, '', 'Document', '', NULL, 'menus.help.document', 'ri:bill-line', 100, 0, 1, 0, 0, 'https://www.artd.pro/docs/zh/', 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
     (1368, NULL, '', 'LiteVersion', '', NULL, 'menus.help.liteVersion', 'ri:bus-2-line', 110, 0, 1, 0, 0, 'https://www.artd.pro/docs/zh/guide/lite-version.html', 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
     (1369, NULL, '', 'OldVersion', '', NULL, 'menus.help.oldVersion', 'ri:subway-line', 120, 0, 1, 0, 0, 'https://www.artd.pro/v2/', 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
-    (1365, NULL, '/change/log', 'ChangeLog', '/change/log', NULL, 'menus.plan.log', 'ri:gamepad-line', 130, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor)
+    (1365, NULL, '/change/log', 'ChangeLog', '/change/log', NULL, 'menus.plan.log', 'ri:gamepad-line', 130, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1401, NULL, '/knowledge', 'Knowledge', '/index/index', NULL, '知识管理', 'ri:book-open-line', 140, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1402, 1401, 'bases', 'KnowledgeBases', '/knowledge/bases', NULL, '知识库', 'ri:database-2-line', 10, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1403, 1401, 'documents', 'KnowledgeDocuments', '/knowledge/documents', NULL, '文档与版本', 'ri:file-text-line', 20, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1404, 1401, 'jobs', 'KnowledgeJobs', '/knowledge/jobs', NULL, '入库任务', 'ri:loader-line', 30, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1405, NULL, '/ai', 'AiOperations', '/index/index', NULL, 'AI 运营', 'ri:robot-line', 150, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1406, 1405, 'runs', 'AiRuns', '/ai/runs', NULL, '任务与步骤', 'ri:flow-chart', 10, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1407, 1405, 'logs', 'AiToolLogs', '/ai/logs', NULL, '工具执行日志', 'ri:file-list-line', 20, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor)
 ON DUPLICATE KEY UPDATE
     parent_id = VALUES(parent_id), path = VALUES(path), route_name = VALUES(route_name),
     component = VALUES(component), redirect = VALUES(redirect), title = VALUES(title), icon = VALUES(icon),
@@ -261,7 +269,7 @@ ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), menu_id = VALUES(menu_id), mo
 INSERT INTO sys_button (
     id, menu_id, button_name, auth_remark, description, sort_no, status, create_by, modify_by
 ) VALUES
-    (1501, 1302, '查询用户', 'user:read', '查询系统用户', 10, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1501, 1302, '查询用户', 'user:read', '查询系统用户（兼容旧标识）', 10, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
     (1508, 1334, '新增', 'add', 'PermissionButtonAuth 新增', 10, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
     (1509, 1334, '编辑', 'edit', 'PermissionButtonAuth 编辑', 20, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
     (1510, 1334, '删除', 'delete', 'PermissionButtonAuth 删除', 30, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
@@ -270,12 +278,47 @@ INSERT INTO sys_button (
     (1513, 1334, '发布', 'publish', 'PermissionButtonAuth 发布', 60, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
     (1514, 1334, '配置', 'config', 'PermissionButtonAuth 配置', 70, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
     (1515, 1334, '管理', 'manage', 'PermissionButtonAuth 管理', 80, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1600, 1400, '查询租户会话', 'system:session:read', 'DeviceSessions 查询租户会话', 10, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1601, 1400, '退出租户设备', 'system:session:revoke', 'DeviceSessions 退出租户设备', 20, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1602, 1302, '查询用户', 'system:user:read', 'User 查询用户', 10, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1603, 1302, '新增用户', 'system:user:create', 'User 新增用户', 20, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1604, 1302, '编辑用户', 'system:user:update', 'User 编辑用户', 30, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1605, 1302, '删除用户', 'system:user:delete', 'User 删除用户', 40, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1606, 1302, '分配角色', 'system:user:grant', 'User 分配角色', 50, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1607, 1304, '查询角色', 'system:role:read', 'Role 查询角色', 10, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1608, 1304, '新增角色', 'system:role:create', 'Role 新增角色', 20, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1609, 1304, '编辑角色', 'system:role:update', 'Role 编辑角色', 30, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1610, 1304, '删除角色', 'system:role:delete', 'Role 删除角色', 40, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1611, 1304, '角色授权', 'system:role:grant', 'Role 角色授权', 50, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
     (1502, 1303, '新增', 'add', 'Menus 新增', 10, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
     (1503, 1303, '编辑', 'edit', 'Menus 编辑', 20, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
     (1504, 1303, '删除', 'delete', 'Menus 删除', 30, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1612, 1303, '菜单查询', 'system:menu:read', 'Menus 菜单查询', 40, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1613, 1303, '菜单新增', 'system:menu:create', 'Menus 菜单新增', 50, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1614, 1303, '菜单编辑', 'system:menu:update', 'Menus 菜单编辑', 60, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1615, 1303, '菜单删除', 'system:menu:delete', 'Menus 菜单删除', 70, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1616, 1303, '按钮查询', 'system:button:read', 'Menus 按钮查询', 80, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1617, 1303, '按钮新增', 'system:button:create', 'Menus 按钮新增', 90, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1618, 1303, '按钮编辑', 'system:button:update', 'Menus 按钮编辑', 100, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1619, 1303, '按钮删除', 'system:button:delete', 'Menus 按钮删除', 110, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
     (1505, 1344, '新增', 'add', 'ArticleList 新增', 10, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
     (1506, 1344, '编辑', 'edit', 'ArticleList 编辑', 20, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
-    (1507, 1347, '发布', 'add', 'ArticlePublish 发布', 10, 'ENABLED', @bootstrap_actor, @bootstrap_actor)
+    (1507, 1347, '发布', 'add', 'ArticlePublish 发布', 10, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1620, 1402, '查询', 'knowledge:base:read', 'KnowledgeBases 查询', 10, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1621, 1402, '新增', 'knowledge:base:create', 'KnowledgeBases 新增', 20, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1622, 1402, '编辑', 'knowledge:base:update', 'KnowledgeBases 编辑', 30, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1623, 1402, '删除', 'knowledge:base:delete', 'KnowledgeBases 删除', 40, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1624, 1403, '查询', 'knowledge:document:read', 'KnowledgeDocuments 查询', 10, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1625, 1403, '新增', 'knowledge:document:create', 'KnowledgeDocuments 新增', 20, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1626, 1403, '编辑', 'knowledge:document:update', 'KnowledgeDocuments 编辑', 30, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1627, 1403, '删除', 'knowledge:document:delete', 'KnowledgeDocuments 删除', 40, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1628, 1404, '查询', 'knowledge:ingestion:read', 'KnowledgeJobs 查询', 10, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1629, 1404, '新增', 'knowledge:ingestion:create', 'KnowledgeJobs 新增', 20, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1630, 1404, '重试', 'knowledge:ingestion:retry', 'KnowledgeJobs 重试', 30, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1631, 1404, '取消', 'knowledge:ingestion:cancel', 'KnowledgeJobs 取消', 40, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1632, 1404, '启用索引', 'knowledge:index:activate', 'KnowledgeJobs 启用索引', 50, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1633, 1406, '查询任务与步骤', 'ai:run:read', 'AiRuns 查询任务与步骤', 10, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1634, 1407, '查询工具日志', 'ai:log:read', 'AiToolLogs 查询工具日志', 10, 'ENABLED', @bootstrap_actor, @bootstrap_actor)
 ON DUPLICATE KEY UPDATE
     menu_id = VALUES(menu_id), button_name = VALUES(button_name), auth_remark = VALUES(auth_remark),
     description = VALUES(description), sort_no = VALUES(sort_no), status = VALUES(status), modify_by = VALUES(modify_by);
