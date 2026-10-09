@@ -3,6 +3,8 @@ spring:
     name: ${SYSTEM_APPLICATION_NAME:sms-system-provider}
   config:
     import:
+      - optional:file:../../.env[.properties]
+      - optional:file:../.env[.properties]
       - optional:file:.env[.properties]
       - optional:nacos:${NACOS_SERVER_ADDR:127.0.0.1:8848}
   datasource:
@@ -20,6 +22,7 @@ server:
 dubbo:
   application:
     name: ${SYSTEM_DUBBO_APPLICATION_NAME:sms-system-provider}
+    qos-enable: false
   protocol:
     name: dubbo
     port: ${SYSTEM_DUBBO_PROTOCOL_PORT:20882}

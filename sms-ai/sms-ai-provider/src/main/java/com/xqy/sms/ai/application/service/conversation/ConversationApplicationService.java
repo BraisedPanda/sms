@@ -9,6 +9,7 @@ import com.xqy.sms.ai.application.event.AiStreamEventPublisher;
 import com.xqy.sms.ai.application.service.chat.AiChatService;
 import com.xqy.sms.ai.application.service.execution.TaskExecutionService;
 import com.xqy.sms.ai.infrastructure.service.log.AiRequestLogService;
+import com.xqy.sms.ai.infrastructure.service.history.AiChatHistoryService;
 import com.xqy.sms.ai.infrastructure.security.AiSafetyPolicy;
 import com.xqy.sms.common.security.jwt.JwtUserContext;
 import com.xqy.sms.ai.application.service.plan.TaskPlannerService;
@@ -34,6 +35,7 @@ public class ConversationApplicationService {
     private final TaskExecutionService executionService;
     private final AiChatService chatService;
     private final AiRequestLogService requestLogService;
+    private final AiChatHistoryService chatHistoryService;
     private final StringRedisTemplate redisTemplate;
     private final AiStreamEventPublisher eventPublisher;
     private final TaskExecutor workflowExecutor;
@@ -44,6 +46,7 @@ public class ConversationApplicationService {
     public ConversationApplicationService(AiTaskRunService runService, TaskPlannerService plannerService,
                                           TaskExecutionService executionService, AiChatService chatService,
                                           AiRequestLogService requestLogService, StringRedisTemplate redisTemplate,
+                                          AiChatHistoryService chatHistoryService,
                                           AiStreamEventPublisher eventPublisher,
                                           @Qualifier("aiWorkflowExecutor") TaskExecutor workflowExecutor,
                                           @Value("${sms.ai.workflow.max-attempts}") int maxAttempts,
@@ -54,6 +57,7 @@ public class ConversationApplicationService {
         this.executionService = executionService;
         this.chatService = chatService;
         this.requestLogService = requestLogService;
+        this.chatHistoryService = chatHistoryService;
         this.redisTemplate = redisTemplate;
         this.eventPublisher = eventPublisher;
         this.workflowExecutor = workflowExecutor;
@@ -97,6 +101,7 @@ public class ConversationApplicationService {
     private void execute(String runId, String streamKey) {
         try {
             AiTaskRun run = runService.requireRun(runId);
+            chatHistoryService.recordUserMessage(run);
             publish(streamKey, AiConstants.STREAM_EVENT.PLANNING, "分析问题中");
             AiTaskStep planStep = runService.createStep(runId, 1, "PLAN", "planner", null,
                     run.getQuestion(), 1, stepTimeoutMs);
@@ -154,11 +159,12 @@ public class ConversationApplicationService {
                 : "User question:\n" + AiSafetyPolicy.redact(run.getQuestion()) + "\n\n"
                 + AiSafetyPolicy.promptResults(results);
         chatService.answer(streamKey, prompt, memoryKey(run), run.getRequestId(), run.getModelAlias(),
-                () -> {
+                answer -> {
                     if (runService.isCancellationRequested(runId)) {
                         runService.markCancelled(runId);
                         return;
                     }
+                    chatHistoryService.recordAssistantMessage(run, answer);
                     runService.succeedStep(composeStep, "STREAM_COMPLETED");
                     runService.completeRun(runId);
                 }, error -> {

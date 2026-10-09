@@ -2,11 +2,11 @@ package com.xqy.sms.knowledge.api.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.xqy.sms.common.entity.BaseEntity;
+import com.xqy.sms.common.entity.CommonEntity;
 import java.io.Serializable;
 
 @TableName("ai_knowledge_base")
-public class AiKnowledgeBase extends BaseEntity implements Serializable {
+public class AiKnowledgeBase extends CommonEntity implements Serializable {
     @TableField("tenant_id") private String tenantId;
     private String name;
     private String description;

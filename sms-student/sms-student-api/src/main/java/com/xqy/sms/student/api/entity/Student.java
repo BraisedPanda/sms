@@ -2,7 +2,7 @@ package com.xqy.sms.student.api.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.xqy.sms.common.entity.BaseEntity;
+import com.xqy.sms.common.entity.CommonEntity;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
  * 学生实体
  */
 @TableName("student")
-public class Student extends BaseEntity implements Serializable {
+public class Student extends CommonEntity implements Serializable {
 
     @TableField("student_no")
     private String studentNo;

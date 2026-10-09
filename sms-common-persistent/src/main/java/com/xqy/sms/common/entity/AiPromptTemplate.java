@@ -7,7 +7,7 @@ import java.io.Serializable;
 
 /** A versioned, database-managed prompt template used by AI services. */
 @TableName("ai_prompt_template")
-public class AiPromptTemplate extends BaseEntity implements Serializable {
+public class AiPromptTemplate extends CommonEntity implements Serializable {
 
     @TableField("prompt_code")
     private String promptCode;

@@ -7,7 +7,7 @@ import java.io.Serializable;
 
 /** Database metadata used to build a provider-specific chat model handle. */
 @TableName("ai_model_definition")
-public class AiModelDefinition extends BaseEntity implements Serializable {
+public class AiModelDefinition extends CommonEntity implements Serializable {
 
     private String provider;
 

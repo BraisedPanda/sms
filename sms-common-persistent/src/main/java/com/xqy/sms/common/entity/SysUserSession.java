@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import java.time.LocalDateTime;
 
 @TableName("sys_user_session")
-public class SysUserSession extends BaseEntity {
+public class SysUserSession extends CommonEntity {
     @TableField("tenant_id") private String tenantId;
     @TableField("user_id") private Long userId;
     private String accessToken;

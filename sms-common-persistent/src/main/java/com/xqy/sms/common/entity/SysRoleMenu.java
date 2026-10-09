@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 
 @TableName("sys_role_menu")
-public class SysRoleMenu extends BaseEntity {
+public class SysRoleMenu extends CommonEntity {
     @TableField("role_id") private Long roleId;
     @TableField("menu_id") private Long menuId;
     public Long getRoleId() { return roleId; }

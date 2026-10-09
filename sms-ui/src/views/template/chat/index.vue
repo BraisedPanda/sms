@@ -317,7 +317,7 @@
         headers: {
           Accept: 'text/event-stream',
           'Content-Type': 'application/json',
-          ...(userStore.accessToken ? { Authorization: userStore.accessToken } : {})
+          ...(userStore.accessToken ? { Authorization: `Bearer ${userStore.accessToken}` } : {})
         },
         body: JSON.stringify({
           userId: String(userStore.info.userId ?? 'anonymous'),

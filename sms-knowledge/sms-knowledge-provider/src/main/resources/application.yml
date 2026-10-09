@@ -3,6 +3,8 @@ spring:
     name: ${KNOWLEDGE_APPLICATION_NAME:sms-knowledge-provider}
   config:
     import:
+      - optional:file:../../.env[.properties]
+      - optional:file:../.env[.properties]
       - optional:file:.env[.properties]
       - optional:nacos:${NACOS_SERVER_ADDR:127.0.0.1:8848}
   datasource:
@@ -34,6 +36,7 @@ server:
 dubbo:
   application:
     name: ${KNOWLEDGE_DUBBO_APPLICATION_NAME:sms-knowledge-provider}
+    qos-enable: false
   protocol:
     name: dubbo
     port: ${KNOWLEDGE_DUBBO_PROTOCOL_PORT:20881}

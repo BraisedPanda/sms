@@ -3,7 +3,7 @@ package com.xqy.sms.common.entity;
 import com.baomidou.mybatisplus.annotation.TableName;
 
 @TableName("sys_role")
-public class SysRole extends BaseEntity {
+public class SysRole extends CommonEntity {
     private String roleCode;
     private String roleName;
     private String description;

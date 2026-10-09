@@ -2,12 +2,12 @@ package com.xqy.sms.knowledge.api.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.xqy.sms.common.entity.BaseEntity;
+import com.xqy.sms.common.entity.CommonEntity;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @TableName("ai_knowledge_ingestion_job")
-public class AiKnowledgeIngestionJob extends BaseEntity implements Serializable {
+public class AiKnowledgeIngestionJob extends CommonEntity implements Serializable {
     @TableField("tenant_id") private String tenantId;
     @TableField("document_version_id") private Long documentVersionId;
     @TableField("index_revision") private String indexRevision;

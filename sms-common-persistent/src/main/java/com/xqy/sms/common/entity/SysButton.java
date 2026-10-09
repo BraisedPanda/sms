@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 
 @TableName("sys_button")
-public class SysButton extends BaseEntity {
+public class SysButton extends CommonEntity {
     @TableField("menu_id") private Long menuId;
     private String buttonName;
     private String authRemark;

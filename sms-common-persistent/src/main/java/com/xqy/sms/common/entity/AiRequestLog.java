@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 
 /** Persistent trace record for one user-facing AI request. */
 @TableName("ai_request_log")
-public class AiRequestLog extends BaseEntity {
+public class AiRequestLog extends CommonEntity {
 
     private String tenantId;
     private String requestId;

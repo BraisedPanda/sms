@@ -6,7 +6,7 @@ import java.io.Serializable;
 
 /** Metadata exposed to an AI model for a tool. */
 @TableName("ai_tool_definition")
-public class AiToolDefinition extends BaseEntity implements Serializable {
+public class AiToolDefinition extends CommonEntity implements Serializable {
 
     private String domain;
 

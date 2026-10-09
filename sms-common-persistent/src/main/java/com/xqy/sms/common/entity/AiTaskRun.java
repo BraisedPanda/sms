@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 
 /** Persistent lifecycle record for one planned AI conversation run. */
 @TableName("ai_task_run")
-public class AiTaskRun extends BaseEntity implements Serializable {
+public class AiTaskRun extends CommonEntity implements Serializable {
     @TableField("tenant_id")
     private String tenantId;
     @TableField("run_id")

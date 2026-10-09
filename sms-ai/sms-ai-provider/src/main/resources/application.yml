@@ -3,6 +3,8 @@ spring:
     name: ${AI_APPLICATION_NAME:sms-ai-provider}
   config:
     import:
+      - optional:file:../../.env[.properties]
+      - optional:file:../.env[.properties]
       - optional:file:.env[.properties]
       - optional:nacos:${NACOS_SERVER_ADDR:127.0.0.1:8848}
   datasource:
@@ -19,6 +21,10 @@ spring:
 dubbo:
   application:
     name: ${AI_DUBBO_APPLICATION_NAME:sms-ai-provider}
+    qos-enable: false
+  protocol:
+    name: dubbo
+    port: ${AI_DUBBO_PROTOCOL_PORT:20883}
   registry:
     address: nacos://${NACOS_SERVER_ADDR:127.0.0.1:8848}
 

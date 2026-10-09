@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 
 @TableName("sys_menu")
-public class SysMenu extends BaseEntity {
+public class SysMenu extends CommonEntity {
     private Long parentId;
     private String path;
     private String routeName;

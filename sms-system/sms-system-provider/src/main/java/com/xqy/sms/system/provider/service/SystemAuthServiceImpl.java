@@ -141,9 +141,10 @@ public class SystemAuthServiceImpl implements SystemAuthService {
         return new SystemAuthModels.TokenPair(access, refresh);
     }
     private SystemAuthModels.Menu menu(Long userId, SysMenu menu) {
-        List<String> marks = authorizationMapper.findButtonMarks(userId, menu.getId()); List<String> names = authorizationMapper.findButtonNames(userId, menu.getId());
-        List<SystemAuthModels.Button> buttons = java.util.stream.IntStream.range(0, marks.size()).mapToObj(i -> new SystemAuthModels.Button(i < names.size() ? names.get(i) : marks.get(i), marks.get(i))).toList();
-        return new SystemAuthModels.Menu(menu.getId(), menu.getParentId(), menu.getPath(), menu.getRouteName(), menu.getComponent(), menu.getRedirect(), menu.getTitle(), menu.getIcon(), menu.getSortNo(), menu.getKeepAlive(), menu.getVisible(), menu.getHideTab(), menu.getFullPage(), menu.getExternalLink(), menu.getIframeFlag(), buttons);
+        List<SystemAuthModels.Button> buttons = authorizationMapper.findMenuButtons(userId, menu.getId());
+        SystemAuthModels.Menu result = new SystemAuthModels.Menu(menu.getId(), menu.getParentId(), menu.getPath(), menu.getRouteName(), menu.getComponent(), menu.getRedirect(), menu.getTitle(), menu.getIcon(), menu.getSortNo(), menu.getKeepAlive(), menu.getVisible(), menu.getHideTab(), menu.getFullPage(), menu.getExternalLink(), menu.getIframeFlag(), buttons);
+        result.setActivePath(menu.getActivePath());
+        return result;
     }
     private boolean revoked(String jti) { return jti == null || Boolean.TRUE.equals(redis.hasKey(REVOKED_KEY + jti)); }
     private void revoke(String jti, long seconds) { if (jti != null && !jti.isBlank() && seconds > 0) redis.opsForValue().set(REVOKED_KEY + jti, "1", Duration.ofSeconds(seconds)); }

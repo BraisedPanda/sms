@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 
 /** Persistent lifecycle record for one plan or tool step. */
 @TableName("ai_task_step")
-public class AiTaskStep extends BaseEntity implements Serializable {
+public class AiTaskStep extends CommonEntity implements Serializable {
     @TableField("step_id")
     private String stepId;
     @TableField("task_run_id")

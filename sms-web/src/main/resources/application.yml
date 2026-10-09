@@ -2,7 +2,9 @@ spring:
   application:
     name: ${WEB_APPLICATION_NAME:sms-web}
   config:
-    import: optional:file:.env[.properties]
+    import:
+      - optional:file:../.env[.properties]
+      - optional:file:.env[.properties]
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -25,5 +27,6 @@ sms:
 dubbo:
   application:
     name: ${WEB_DUBBO_APPLICATION_NAME:sms-web-bff}
+    qos-enable: false
   registry:
     address: nacos://${NACOS_SERVER_ADDR:127.0.0.1:8848}

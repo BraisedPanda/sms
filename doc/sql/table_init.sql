@@ -413,7 +413,7 @@ CREATE TABLE IF NOT EXISTS sys_button (
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    UNIQUE KEY uk_sys_button_auth_remark (auth_remark),
+    UNIQUE KEY uk_sys_button_menu_auth (menu_id, auth_remark),
     KEY idx_sys_button_menu_id (menu_id),
     KEY idx_sys_button_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='System button permission';
@@ -455,3 +455,42 @@ CREATE TABLE IF NOT EXISTS sys_user_session (
     KEY idx_sys_user_session_tenant_user (tenant_id, user_id),
     KEY idx_sys_user_session_status_expire (status, expire_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='User login session';
+
+CREATE TABLE IF NOT EXISTS ai_chat_conversation (
+    id BIGINT NOT NULL,
+    tenant_id VARCHAR(64) NOT NULL,
+    user_id VARCHAR(64) NOT NULL,
+    session_id VARCHAR(64) NOT NULL,
+    title VARCHAR(512) DEFAULT NULL,
+    status VARCHAR(16) NOT NULL DEFAULT 'ACTIVE',
+    last_message_at DATETIME DEFAULT NULL,
+    create_by VARCHAR(64) DEFAULT NULL,
+    modify_by VARCHAR(64) DEFAULT NULL,
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_ai_chat_conversation_owner (tenant_id, user_id, session_id),
+    KEY idx_ai_chat_conversation_last_message (tenant_id, user_id, last_message_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI chat conversation';
+
+CREATE TABLE IF NOT EXISTS ai_chat_message (
+    id BIGINT NOT NULL,
+    conversation_id BIGINT NOT NULL,
+    tenant_id VARCHAR(64) NOT NULL,
+    user_id VARCHAR(64) NOT NULL,
+    session_id VARCHAR(64) NOT NULL,
+    role VARCHAR(16) NOT NULL,
+    content MEDIUMTEXT NOT NULL,
+    run_id VARCHAR(64) NOT NULL,
+    sequence_no INT NOT NULL,
+    create_by VARCHAR(64) DEFAULT NULL,
+    modify_by VARCHAR(64) DEFAULT NULL,
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_ai_chat_message_sequence (conversation_id, sequence_no),
+    UNIQUE KEY uk_ai_chat_message_run_role (tenant_id, run_id, role),
+    KEY idx_ai_chat_message_tenant_session (tenant_id, user_id, session_id, create_time),
+    KEY idx_ai_chat_message_run (run_id),
+    CONSTRAINT fk_ai_chat_message_conversation FOREIGN KEY (conversation_id) REFERENCES ai_chat_conversation(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI chat message';

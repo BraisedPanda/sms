@@ -92,6 +92,7 @@ public class AuthController {
             meta.put("title", menu.title()); meta.put("icon", menu.icon()); meta.put("keepAlive", Boolean.TRUE.equals(menu.keepAlive()));
             meta.put("isHide", !Boolean.TRUE.equals(menu.visible())); meta.put("isHideTab", Boolean.TRUE.equals(menu.hideTab()));
             meta.put("isFullPage", Boolean.TRUE.equals(menu.fullPage())); meta.put("link", menu.link()); meta.put("isIframe", Boolean.TRUE.equals(menu.iframe())); meta.put("authList", menu.authList());
+            meta.put("activePath", menu.activePath());
             item.put("meta", meta); item.put("children", new java.util.ArrayList<Map<String, Object>>()); byId.put(menu.id(), item);
         }
         List<Map<String, Object>> roots = new java.util.ArrayList<>();

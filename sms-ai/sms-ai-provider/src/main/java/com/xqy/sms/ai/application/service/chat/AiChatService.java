@@ -43,9 +43,9 @@ public class AiChatService {
 
     /** Streams a composed answer and reports terminal status to the task-run orchestrator. */
     public void answer(String streamKey, String resultJson, String chatMemoryId,
-                       String requestId, String alias, Runnable onSuccess, Consumer<Throwable> onFailure) {
+                       String requestId, String alias, Consumer<String> onSuccess, Consumer<Throwable> onFailure) {
         if (resultJson == null || resultJson.isBlank()) {
-            publish(streamKey, AiConstants.STREAM_EVENT.ERROR, "工具没有返回结果");
+            fail(streamKey, requestId, onFailure, new IllegalArgumentException("工具没有返回结果"));
             return;
         }
         try {
@@ -53,19 +53,26 @@ public class AiChatService {
             createAssistant(alias).answer(chatMemoryId, resultJson)
                     .onPartialResponse(token -> publish(streamKey, AiConstants.STREAM_EVENT.TOKEN, token))
                     .onCompleteResponse(response -> {
-                        finishRequest(requestId, response);
-                        onSuccess.run();
-                        publish(streamKey, AiConstants.STREAM_EVENT.DONE, "完成");
+                        try {
+                            onSuccess.accept(response == null || response.aiMessage() == null ? null : response.aiMessage().text());
+                            finishRequest(requestId, response);
+                            publish(streamKey, AiConstants.STREAM_EVENT.DONE, "完成");
+                        } catch (Exception error) {
+                            fail(streamKey, requestId, onFailure, error);
+                        }
                     })
-                    .onError(error -> {
-                        requestLogService.fail(requestId, error.getClass().getSimpleName(), error);
-                        onFailure.accept(error);
-                        publish(streamKey, AiConstants.STREAM_EVENT.ERROR, errorMessage(error));
-                    })
+                    .onError(error -> fail(streamKey, requestId, onFailure, error))
                     .start();
         } catch (Exception error) {
-            requestLogService.fail(requestId, error.getClass().getSimpleName(), error);
+            fail(streamKey, requestId, onFailure, error);
+        }
+    }
+
+    private void fail(String streamKey, String requestId, Consumer<Throwable> onFailure, Throwable error) {
+        requestLogService.fail(requestId, error.getClass().getSimpleName(), error);
+        try {
             onFailure.accept(error);
+        } finally {
             publish(streamKey, AiConstants.STREAM_EVENT.ERROR, errorMessage(error));
         }
     }

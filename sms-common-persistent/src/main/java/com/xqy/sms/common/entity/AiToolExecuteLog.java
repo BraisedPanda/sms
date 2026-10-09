@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 
 /** Persistent trace record for one registered AI tool execution. */
 @TableName("ai_tool_execute_log")
-public class AiToolExecuteLog extends BaseEntity {
+public class AiToolExecuteLog extends CommonEntity {
 
     private String tenantId;
     private String toolExecuteId;

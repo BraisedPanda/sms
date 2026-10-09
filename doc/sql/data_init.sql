@@ -1,5 +1,6 @@
 -- SMS MySQL 8.0+ bootstrap data.
--- Run after table_init.sql. All statements are idempotent and use stable IDs.
+-- New database: run after table_init.sql. Existing database: apply
+-- 2026-10-09_chat_history_permissions.sql first. All statements use stable IDs and are idempotent.
 -- Development login: Admin / 123456. Change this password immediately outside local development.
 SET NAMES utf8mb4;
 SET @bootstrap_tenant = 'default';
@@ -139,7 +140,7 @@ ON DUPLICATE KEY UPDATE
     document_version_id = VALUES(document_version_id), content = VALUES(content),
     content_type = VALUES(content_type), metadata = VALUES(metadata), modify_by = VALUES(modify_by);
 
--- System administrator and the minimum RBAC/menu graph required by sms-ui.
+-- System administrator and the full RBAC/menu graph required by sms-ui.
 INSERT INTO sys_user (
     id, tenant_id, username, password, nickname, user_type, status, create_by, modify_by
 ) VALUES (
@@ -166,14 +167,81 @@ VALUES (1201, 1001, 1101, @bootstrap_actor, @bootstrap_actor)
 ON DUPLICATE KEY UPDATE
     user_id = VALUES(user_id), role_id = VALUES(role_id), modify_by = VALUES(modify_by);
 
+-- Complete menu graph from sms-ui/src/router/modules, including hidden routes and external links.
 INSERT INTO sys_menu (
     id, parent_id, path, route_name, component, redirect, title, icon, sort_no,
     keep_alive, visible, hide_tab, full_page, external_link, iframe_flag,
     active_path, status, create_by, modify_by
 ) VALUES
-    (1301, NULL, '/system', 'System', '/index/index', '/system/user', 'menus.system.title', 'ri:user-3-line', 90, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1305, NULL, '/dashboard', 'Dashboard', '/index/index', NULL, 'menus.dashboard.title', 'ri:pie-chart-line', 10, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1306, 1305, 'console', 'Console', '/dashboard/console', NULL, 'menus.dashboard.console', 'ri:home-smile-2-line', 10, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1307, 1305, 'analysis', 'Analysis', '/dashboard/analysis', NULL, 'menus.dashboard.analysis', 'ri:align-item-bottom-line', 20, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1308, 1305, 'ecommerce', 'Ecommerce', '/dashboard/ecommerce', NULL, 'menus.dashboard.ecommerce', 'ri:bar-chart-box-line', 30, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1309, NULL, '/template', 'Template', '/index/index', NULL, 'menus.template.title', 'ri:apps-2-line', 20, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1310, 1309, 'cards', 'Cards', '/template/cards', NULL, 'menus.template.cards', 'ri:wallet-line', 10, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1311, 1309, 'banners', 'Banners', '/template/banners', NULL, 'menus.template.banners', 'ri:rectangle-line', 20, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1312, 1309, 'charts', 'Charts', '/template/charts', NULL, 'menus.template.charts', 'ri:bar-chart-box-line', 30, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1313, 1309, 'map', 'Map', '/template/map', NULL, 'menus.template.map', 'ri:map-pin-line', 40, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1314, 1309, 'chat', 'Chat', '/template/chat', NULL, 'menus.template.chat', 'ri:message-3-line', 50, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1315, 1309, 'calendar', 'Calendar', '/template/calendar', NULL, 'menus.template.calendar', 'ri:calendar-2-line', 60, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1316, 1309, 'pricing', 'Pricing', '/template/pricing', NULL, 'menus.template.pricing', 'ri:money-cny-box-line', 70, 1, 1, 0, 1, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1317, NULL, '/widgets', 'Widgets', '/index/index', NULL, 'menus.widgets.title', 'ri:apps-2-add-line', 30, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1318, 1317, 'icon', 'Icon', '/widgets/icon', NULL, 'menus.widgets.icon', 'ri:palette-line', 10, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1319, 1317, 'image-crop', 'ImageCrop', '/widgets/image-crop', NULL, 'menus.widgets.imageCrop', 'ri:screenshot-line', 20, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1320, 1317, 'excel', 'Excel', '/widgets/excel', NULL, 'menus.widgets.excel', 'ri:download-2-line', 30, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1321, 1317, 'video', 'Video', '/widgets/video', NULL, 'menus.widgets.video', 'ri:vidicon-line', 40, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1322, 1317, 'count-to', 'CountTo', '/widgets/count-to', NULL, 'menus.widgets.countTo', 'ri:anthropic-line', 50, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1323, 1317, 'wang-editor', 'WangEditor', '/widgets/wang-editor', NULL, 'menus.widgets.wangEditor', 'ri:t-box-line', 60, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1324, 1317, 'watermark', 'Watermark', '/widgets/watermark', NULL, 'menus.widgets.watermark', 'ri:water-flash-line', 70, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1325, 1317, 'context-menu', 'ContextMenu', '/widgets/context-menu', NULL, 'menus.widgets.contextMenu', 'ri:menu-2-line', 80, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1326, 1317, 'qrcode', 'Qrcode', '/widgets/qrcode', NULL, 'menus.widgets.qrcode', 'ri:qr-code-line', 90, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1327, 1317, 'drag', 'Drag', '/widgets/drag', NULL, 'menus.widgets.drag', 'ri:drag-move-fill', 100, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1328, 1317, 'text-scroll', 'TextScroll', '/widgets/text-scroll', NULL, 'menus.widgets.textScroll', 'ri:input-method-line', 110, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1329, 1317, 'fireworks', 'Fireworks', '/widgets/fireworks', NULL, 'menus.widgets.fireworks', 'ri:magic-line', 120, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1330, 1317, '/outside/iframe/elementui', 'ElementUI', '', NULL, 'menus.widgets.elementUI', 'ri:apps-2-line', 130, 0, 1, 0, 0, 'https://element-plus.org/zh-CN/component/overview.html', 1, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1331, NULL, '/examples', 'Examples', '/index/index', NULL, 'menus.examples.title', 'ri:sparkling-line', 40, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1332, 1331, 'permission', 'Permission', '', NULL, 'menus.examples.permission.title', 'ri:fingerprint-line', 10, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1333, 1332, 'switch-role', 'PermissionSwitchRole', '/examples/permission/switch-role', NULL, 'menus.examples.permission.switchRole', 'ri:contacts-line', 10, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1334, 1332, 'button-auth', 'PermissionButtonAuth', '/examples/permission/button-auth', NULL, 'menus.examples.permission.buttonAuth', 'ri:mouse-line', 20, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1335, 1332, 'page-visibility', 'PermissionPageVisibility', '/examples/permission/page-visibility', NULL, 'menus.examples.permission.pageVisibility', 'ri:user-3-line', 30, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1336, 1331, 'tabs', 'Tabs', '/examples/tabs', NULL, 'menus.examples.tabs', 'ri:price-tag-line', 20, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1337, 1331, 'tables/basic', 'TablesBasic', '/examples/tables/basic', NULL, 'menus.examples.tablesBasic', 'ri:layout-grid-line', 30, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1338, 1331, 'tables', 'Tables', '/examples/tables', NULL, 'menus.examples.tables', 'ri:table-3', 40, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1339, 1331, 'forms', 'Forms', '/examples/forms', NULL, 'menus.examples.forms', 'ri:table-view', 50, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1340, 1331, 'form/search-bar', 'SearchBar', '/examples/forms/search-bar', NULL, 'menus.examples.searchBar', 'ri:table-line', 60, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1341, 1331, 'tables/tree', 'TablesTree', '/examples/tables/tree', NULL, 'menus.examples.tablesTree', 'ri:layout-2-line', 70, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1342, 1331, 'socket-chat', 'SocketChat', '/examples/socket-chat', NULL, 'menus.examples.socketChat', 'ri:shake-hands-line', 80, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1301, NULL, '/system', 'System', '/index/index', NULL, 'menus.system.title', 'ri:user-3-line', 50, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
     (1302, 1301, 'user', 'User', '/system/user', NULL, 'menus.system.user', 'ri:user-line', 10, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
-    (1303, 1301, 'menu', 'Menus', '/system/menu', NULL, 'menus.system.menu', 'ri:menu-line', 20, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor)
+    (1304, 1301, 'role', 'Role', '/system/role', NULL, 'menus.system.role', 'ri:user-settings-line', 20, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1366, 1301, 'user-center', 'UserCenter', '/system/user-center', NULL, 'menus.system.userCenter', 'ri:user-line', 30, 1, 0, 1, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1303, 1301, 'menu', 'Menus', '/system/menu', NULL, 'menus.system.menu', 'ri:menu-line', 40, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1357, 1301, 'nested', 'Nested', '', NULL, 'menus.system.nested', 'ri:menu-unfold-3-line', 50, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1358, 1357, 'menu1', 'NestedMenu1', '/system/nested/menu1', NULL, 'menus.system.menu1', 'ri:align-justify', 10, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1359, 1357, 'menu2', 'NestedMenu2', '', NULL, 'menus.system.menu2', 'ri:align-justify', 20, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1360, 1359, 'menu2-1', 'NestedMenu2-1', '/system/nested/menu2', NULL, 'menus.system.menu21', 'ri:align-justify', 10, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1361, 1357, 'menu3', 'NestedMenu3', '', NULL, 'menus.system.menu3', 'ri:align-justify', 30, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1362, 1361, 'menu3-1', 'NestedMenu3-1', '/system/nested/menu3', NULL, 'menus.system.menu31', NULL, 10, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1363, 1361, 'menu3-2', 'NestedMenu3-2', '', NULL, 'menus.system.menu32', NULL, 20, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1364, 1363, 'menu3-2-1', 'NestedMenu3-2-1', '/system/nested/menu3/menu3-2', NULL, 'menus.system.menu321', NULL, 10, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1343, NULL, '/article', 'Article', '/index/index', NULL, 'menus.article.title', 'ri:book-2-line', 60, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1344, 1343, 'article-list', 'ArticleList', '/article/list', NULL, 'menus.article.articleList', 'ri:article-line', 10, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1345, 1343, 'detail/:id', 'ArticleDetail', '/article/detail', NULL, 'menus.article.articleDetail', NULL, 20, 1, 0, 0, 0, NULL, 0, '/article/article-list', 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1346, 1343, 'comment', 'ArticleComment', '/article/comment', NULL, 'menus.article.comment', 'ri:mail-line', 30, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1347, 1343, 'publish', 'ArticlePublish', '/article/publish', NULL, 'menus.article.articlePublish', 'ri:telegram-2-line', 40, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1348, NULL, '/result', 'Result', '/index/index', NULL, 'menus.result.title', 'ri:checkbox-circle-line', 70, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1349, 1348, 'success', 'ResultSuccess', '/result/success', NULL, 'menus.result.success', 'ri:checkbox-circle-line', 10, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1350, 1348, 'fail', 'ResultFail', '/result/fail', NULL, 'menus.result.fail', 'ri:close-circle-line', 20, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1351, NULL, '/exception', 'Exception', '/index/index', NULL, 'menus.exception.title', 'ri:error-warning-line', 80, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1352, 1351, '403', 'Exception403', '/exception/403', NULL, 'menus.exception.forbidden', NULL, 10, 1, 1, 1, 1, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1353, 1351, '404', 'Exception404', '/exception/404', NULL, 'menus.exception.notFound', NULL, 20, 1, 1, 1, 1, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1354, 1351, '500', 'Exception500', '/exception/500', NULL, 'menus.exception.serverError', NULL, 30, 1, 1, 1, 1, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1355, NULL, '/safeguard', 'Safeguard', '/index/index', NULL, 'menus.safeguard.title', 'ri:shield-check-line', 90, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1356, 1355, 'server', 'SafeguardServer', '/safeguard/server', NULL, 'menus.safeguard.server', 'ri:hard-drive-3-line', 10, 1, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1367, NULL, '', 'Document', '', NULL, 'menus.help.document', 'ri:bill-line', 100, 0, 1, 0, 0, 'https://www.artd.pro/docs/zh/', 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1368, NULL, '', 'LiteVersion', '', NULL, 'menus.help.liteVersion', 'ri:bus-2-line', 110, 0, 1, 0, 0, 'https://www.artd.pro/docs/zh/guide/lite-version.html', 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1369, NULL, '', 'OldVersion', '', NULL, 'menus.help.oldVersion', 'ri:subway-line', 120, 0, 1, 0, 0, 'https://www.artd.pro/v2/', 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1365, NULL, '/change/log', 'ChangeLog', '/change/log', NULL, 'menus.plan.log', 'ri:gamepad-line', 130, 0, 1, 0, 0, NULL, 0, NULL, 'ENABLED', @bootstrap_actor, @bootstrap_actor)
 ON DUPLICATE KEY UPDATE
     parent_id = VALUES(parent_id), path = VALUES(path), route_name = VALUES(route_name),
     component = VALUES(component), redirect = VALUES(redirect), title = VALUES(title), icon = VALUES(icon),
@@ -182,30 +250,38 @@ ON DUPLICATE KEY UPDATE
     iframe_flag = VALUES(iframe_flag), active_path = VALUES(active_path), status = VALUES(status),
     modify_by = VALUES(modify_by);
 
+-- Existing routes and any additional enabled menus are also granted to R_SUPER.
 INSERT INTO sys_role_menu (id, role_id, menu_id, create_by, modify_by)
-VALUES
-    (1401, 1101, 1301, @bootstrap_actor, @bootstrap_actor),
-    (1402, 1101, 1302, @bootstrap_actor, @bootstrap_actor),
-    (1403, 1101, 1303, @bootstrap_actor, @bootstrap_actor)
-ON DUPLICATE KEY UPDATE
-    role_id = VALUES(role_id), menu_id = VALUES(menu_id), modify_by = VALUES(modify_by);
+SELECT 200000 + m.id, r.id, m.id, @bootstrap_actor, @bootstrap_actor
+FROM sys_menu m CROSS JOIN sys_role r
+WHERE r.role_code = 'R_SUPER' AND m.status = 'ENABLED'
+ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), menu_id = VALUES(menu_id), modify_by = VALUES(modify_by);
 
+-- auth_remark is unique within a menu so reused frontend marks remain compatible.
 INSERT INTO sys_button (
     id, menu_id, button_name, auth_remark, description, sort_no, status, create_by, modify_by
 ) VALUES
     (1501, 1302, '查询用户', 'user:read', '查询系统用户', 10, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
-    (1502, 1303, '新增菜单', 'add', '新增系统菜单', 10, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
-    (1503, 1303, '编辑菜单', 'edit', '编辑系统菜单', 20, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
-    (1504, 1303, '删除菜单', 'delete', '删除系统菜单', 30, 'ENABLED', @bootstrap_actor, @bootstrap_actor)
+    (1508, 1334, '新增', 'add', 'PermissionButtonAuth 新增', 10, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1509, 1334, '编辑', 'edit', 'PermissionButtonAuth 编辑', 20, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1510, 1334, '删除', 'delete', 'PermissionButtonAuth 删除', 30, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1511, 1334, '导出', 'export', 'PermissionButtonAuth 导出', 40, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1512, 1334, '查看', 'view', 'PermissionButtonAuth 查看', 50, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1513, 1334, '发布', 'publish', 'PermissionButtonAuth 发布', 60, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1514, 1334, '配置', 'config', 'PermissionButtonAuth 配置', 70, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1515, 1334, '管理', 'manage', 'PermissionButtonAuth 管理', 80, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1502, 1303, '新增', 'add', 'Menus 新增', 10, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1503, 1303, '编辑', 'edit', 'Menus 编辑', 20, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1504, 1303, '删除', 'delete', 'Menus 删除', 30, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1505, 1344, '新增', 'add', 'ArticleList 新增', 10, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1506, 1344, '编辑', 'edit', 'ArticleList 编辑', 20, 'ENABLED', @bootstrap_actor, @bootstrap_actor),
+    (1507, 1347, '发布', 'add', 'ArticlePublish 发布', 10, 'ENABLED', @bootstrap_actor, @bootstrap_actor)
 ON DUPLICATE KEY UPDATE
-    menu_id = VALUES(menu_id), button_name = VALUES(button_name), description = VALUES(description),
-    sort_no = VALUES(sort_no), status = VALUES(status), modify_by = VALUES(modify_by);
+    menu_id = VALUES(menu_id), button_name = VALUES(button_name), auth_remark = VALUES(auth_remark),
+    description = VALUES(description), sort_no = VALUES(sort_no), status = VALUES(status), modify_by = VALUES(modify_by);
 
 INSERT INTO sys_role_button (id, role_id, button_id, create_by, modify_by)
-VALUES
-    (1601, 1101, 1501, @bootstrap_actor, @bootstrap_actor),
-    (1602, 1101, 1502, @bootstrap_actor, @bootstrap_actor),
-    (1603, 1101, 1503, @bootstrap_actor, @bootstrap_actor),
-    (1604, 1101, 1504, @bootstrap_actor, @bootstrap_actor)
-ON DUPLICATE KEY UPDATE
-    role_id = VALUES(role_id), button_id = VALUES(button_id), modify_by = VALUES(modify_by);
+SELECT 300000 + b.id, r.id, b.id, @bootstrap_actor, @bootstrap_actor
+FROM sys_button b CROSS JOIN sys_role r
+WHERE r.role_code = 'R_SUPER' AND b.status = 'ENABLED'
+ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), button_id = VALUES(button_id), modify_by = VALUES(modify_by);

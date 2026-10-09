@@ -3,6 +3,8 @@ spring:
     name: ${STUDENT_APPLICATION_NAME:student-service-provider}
   config:
     import:
+      - optional:file:../../.env[.properties]
+      - optional:file:../.env[.properties]
       - optional:file:.env[.properties]
       - optional:nacos:${NACOS_SERVER_ADDR:127.0.0.1:8848}
   datasource:
@@ -17,6 +19,7 @@ server:
 dubbo:
   application:
     name: ${STUDENT_DUBBO_APPLICATION_NAME:student-service-provider}
+    qos-enable: false
   protocol:
     name: dubbo
     port: ${STUDENT_DUBBO_PROTOCOL_PORT:20880}

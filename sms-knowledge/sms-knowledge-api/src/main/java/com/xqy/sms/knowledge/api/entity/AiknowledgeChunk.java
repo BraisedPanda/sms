@@ -1,12 +1,12 @@
 package com.xqy.sms.knowledge.api.entity;
 
-import com.xqy.sms.common.entity.BaseEntity;
+import com.xqy.sms.common.entity.CommonEntity;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
 /** Vector record stored in Milvus; its metadata is denormalized for filtering. */
-public class AiknowledgeChunk extends BaseEntity implements Serializable {
+public class AiknowledgeChunk extends CommonEntity implements Serializable {
     private String tenantId;
     private Long knowledgeBaseId;
     private Long documentId;
